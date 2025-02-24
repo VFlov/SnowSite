@@ -1,12 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SnowSite.Server.Models;
 using SnowSite.Server.Services;
 
 namespace SnowSite.Server.Controllers
 {
-    // Controllers/ChatController.cs
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ChatController : ControllerBase
     {
         private readonly IChatService _chatService;
@@ -29,15 +30,16 @@ namespace SnowSite.Server.Controllers
         }
 
         [HttpPost("messages/{dialogId}")]
-        public async Task<ActionResult<Message>> SendMessage(int dialogId, [FromBody] SendMessageRequest request)
+        public async Task<ActionResult<Message>> SendMessage(int dialogId, [FromForm] string text, IFormFile? attachment)
         {
-            var message = await _chatService.SendMessageAsync(dialogId, request.Text);
-            return CreatedAtAction(nameof(GetMessages), new { dialogId = message.Id }, message);
+            var message = await _chatService.SendMessageAsync(dialogId, text, attachment);
+            return CreatedAtAction(nameof(GetMessages), new { dialogId = message.DialogId }, message);
         }
-    }
 
-    public class SendMessageRequest
-    {
-        public string Text { get; set; } = string.Empty;
+        [HttpGet("search")]
+        public async Task<ActionResult<List<Message>>> SearchMessages([FromQuery] string query)
+        {
+            return Ok(await _chatService.SearchMessagesAsync(query));
+        }
     }
 }
