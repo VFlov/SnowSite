@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@microsoft/signalr": "^8.0.7",
+    "simple-peer": "^9.11.1",
+    "vue-router": "^4.5.0",
+    "webrtc-adapter": "^9.0.1"
+  }
+}
