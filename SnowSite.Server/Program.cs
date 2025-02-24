@@ -51,7 +51,8 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 app.UseCors("AllowAll");
-app.UseRouting(); 
+app.UseRouting();
+app.UseAuthorization();
 app.MapHub<CallHub>("/chatHub");
 
 app.UseWebSockets();
