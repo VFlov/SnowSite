@@ -1,20 +1,21 @@
 <template>
-  
-    <router-view @authenticated="checkAuth"></router-view>
-    
+
+  <router-view @authenticated="checkAuth"></router-view>
+
 </template>
-<script>export default {
-  methods: {
-    checkAuth() {
-      if (localStorage.getItem('token')) {
-        this.$router.push('/chat');
+<script>
+  export default {
+    methods: {
+      checkAuth() {
+        if (localStorage.getItem('token')) {
+          this.$router.push('/chat');
+        }
       }
+    },
+    created() {
+      this.checkAuth();
     }
-  },
-  created() {
-    this.checkAuth();
-  }
-};</script>
+  };</script>
 <style>
   #app {
     max-width: 1200px;
@@ -23,7 +24,6 @@
     background-color: #fff;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
     border-radius: 10px;
-    font-family : 'Ubuntu', sans-serif;
+    font-family: 'Ubuntu', sans-serif;
   }
-  
- </style>
+</style>
