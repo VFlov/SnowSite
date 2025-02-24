@@ -27,7 +27,7 @@ namespace SnowSite.Server.Services
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Username == username);
 
-            if (user == null || !BCrypt.ReferenceEquals(password, user.PasswordHash)) ///?????????????????????????
+            if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash)) ///?????????????????????????
                 throw new Exception("Invalid credentials");
 
             var token = GenerateJwtToken(user);

@@ -8,7 +8,7 @@ namespace SnowSite.Server.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class ChatController : ControllerBase
+    public class ChatController : Controller
     {
         private readonly IChatService _chatService;
 

@@ -132,7 +132,7 @@
         });
       },
       async login(username, password) {
-        const response = await fetch('/api/auth/login', {
+        const response = await fetch('https://45.130.214.139:5020/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
@@ -152,7 +152,7 @@
       },
 
       connectWebSocket() {
-        this.socket = new WebSocket(`ws://localhost:5000/ws?token=${this.token}`);
+        this.socket = new WebSocket(`ws://45.130.214.139:5020/ws?token=${this.token}`);
         this.socket.onmessage = (event) => {
           const message = JSON.parse(event.data);
           if (message.dialogId === this.selectedDialog?.id) {

@@ -9,6 +9,7 @@ import YandexMap from './YandexMap.vue';
 import Examples from './Examples.vue';
 import VideoCall from './VideoCall.vue';
 import Valheim from './Valheim.vue';
+import AuthPage from './Auth.vue'
 
 //const Home = { template: Card }
 //const SocialNetwork = { template: Social }
@@ -20,7 +21,15 @@ const routes = [
   { path: '/map', name : 'map', component: YandexMap },
   { path: '/examples', name : 'examples', component: Examples},
   { path: '/videocall', name: 'videocall', component: VideoCall },
-  { path: '/valheim', name: 'valheim', component: Valheim}
+  { path: '/valheim', name: 'valheim', component: Valheim },
+  {
+    path: '/auth', name: 'auth', component: AuthPage, beforeEnter: (to, from, next) => {
+      if (!localStorage.getItem('token')) {
+        next('/auth');
+      } else {
+        next();
+      }
+    } }
   //{ path: '/:pathMatch(.*)*', component: NotFound },
 ];
 const router = createRouter({

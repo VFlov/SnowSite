@@ -1,8 +1,20 @@
 <template>
   
-    <router-view></router-view>
+    <router-view @authenticated="checkAuth"></router-view>
     
 </template>
+<script>export default {
+  methods: {
+    checkAuth() {
+      if (localStorage.getItem('token')) {
+        this.$router.push('/chat');
+      }
+    }
+  },
+  created() {
+    this.checkAuth();
+  }
+};</script>
 <style>
   #app {
     max-width: 1200px;
