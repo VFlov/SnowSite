@@ -34,7 +34,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
@@ -53,10 +52,6 @@ builder.Services.AddControllers();
 var app = builder.Build();
 app.UseCors("AllowAll");
 app.UseRouting();
-app.UseStaticFiles();
-app.UseHttpsRedirection();
-app.UseAuthentication();
-
 app.UseAuthorization();
 app.MapHub<CallHub>("/chatHub");
 
