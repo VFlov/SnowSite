@@ -15,9 +15,9 @@ import AuthPage from './AuthPage.vue'
 //const SocialNetwork = { template: Social }
 
 const routes = [
-  { path: '/', name: 'card', component: Main },
+  //{ path: '/', name: 'card', component: Main },
   { path: '/home', redirect: '/' },
-  { path: '/chat', name: 'social', component: Social },
+  { path: '/social', name: 'social', component: Social },
   { path: '/map', name: 'map', component: YandexMap },
   { path: '/examples', name: 'examples', component: Examples },
   { path: '/videocall', name: 'videocall', component: VideoCall },
@@ -34,10 +34,7 @@ const routes = [
       }
     }
   },
-  { path: '/chat', redirect: '/auth' }
-
-  //hello!!!!!!!
-  //hI!
+  { path: '/', redirect: '/auth' }
   /*{
     path: '/auth', name: 'auth', component: AuthPage, beforeEnter: (to, from, next) => {
       if (!localStorage.getItem('token')) {
