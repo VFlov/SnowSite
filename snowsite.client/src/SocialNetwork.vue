@@ -78,9 +78,13 @@
     methods: {
       async selectDialog(dialog) {
         this.selectedDialog = dialog;
-        const response = await fetch(`https://45.130.214.139:5020/api/chat/messages/${dialog.id}`);
+
+        const response = await this.fetchWithAuth(`https://45.130.214.139:5020/api/chat/messages/${dialog.id}`);
         this.messages = await response.json();
         this.$nextTick(() => this.scrollToBottom());
+      },
+      async getDialogs() {
+
       },
       getMessagesForDialog(dialogId) {
         // Симуляция загрузки сообщений
@@ -99,7 +103,7 @@
       async sendMessage() {
         if (!this.newMessage.trim() || !this.selectedDialog) return;
 
-        const response = await fetch(`https://45.130.214.139:5020/api/chat/messages/${this.selectedDialog.id}`, {
+        const response = await this.fetchWithAuth(`https://45.130.214.139:5020/api/chat/messages/${this.selectedDialog.id}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: this.newMessage })
@@ -132,7 +136,7 @@
         });
       },
       async login(username, password) {
-        const response = await fetch('https://45.130.214.139:5020/api/auth/login', {
+        const response = await this.fetchWithAuth('https://45.130.214.139:5020/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password })
