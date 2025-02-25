@@ -7,8 +7,8 @@
   export default {
     methods: {
       checkAuth() {
-        if (localStorage.getItem('token')) {
-          this.$router.push('/chat');
+        if (!localStorage.getItem('token')) {
+          this.$router.push('/auth');
         }
       }
     },

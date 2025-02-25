@@ -72,7 +72,7 @@ export default {
       githubUsername: "VFlov",
       githubLink: "https://github.com/VFlov",
       navItems: [
-        { href: "social", label: "Соц сеть" },
+        { href: "chat", label: "Соц сеть" },
         { href: "examples", label: "Веб примеры" },
         { href: "map", label: "Карта" },
         { href: "videocall", label: "Calls" },
