@@ -36,8 +36,6 @@ const routes = [
   },
   { path: '/chat', redirect: '/auth' }
 
-  //hello!!!!!!!
-  //hI!
   /*{
     path: '/auth', name: 'auth', component: AuthPage, beforeEnter: (to, from, next) => {
       if (!localStorage.getItem('token')) {
