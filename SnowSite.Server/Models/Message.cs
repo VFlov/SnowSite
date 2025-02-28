@@ -5,10 +5,11 @@ public class Message
 {
     public int Id { get; set; }
     public int DialogId { get; set; }
+    public Dialog Dialog { get; set; }
 
     [Required]
-    [MaxLength(50)]
-    public string Sender { get; set; } = string.Empty;
+    public int SenderId { get; set; }
+    public User Sender { get; set; }
 
     [Required]
     [MaxLength(1000)]

@@ -22,27 +22,78 @@ public class ChatService : IChatService
     {
         var userId = _authService.GetCurrentUserId();
         return await _context.Dialogs
-            .Where(d => d.UserId == userId)
+            .Where(d => d.User1Id == userId || d.User2Id == userId)
+            .Select(d => new Dialog
+            {
+                Id = d.Id,
+                User1Id = d.User1Id,
+                User2Id = d.User2Id,
+                LastMessage = d.LastMessage,
+                User1 = d.User1,
+                User2 = d.User2,
+                User1UnreadCount = d.User1UnreadCount,
+                User2UnreadCount = d.User2UnreadCount
+            })
             .ToListAsync();
+    }
+
+    public async Task<Dialog> CreateDialogAsync(int targetUserId)
+    {
+        var currentUserId = _authService.GetCurrentUserId();
+        if (currentUserId == targetUserId) throw new Exception("Нельзя создать диалог с самим собой");
+
+        var existingDialog = await _context.Dialogs
+            .FirstOrDefaultAsync(d =>
+                (d.User1Id == currentUserId && d.User2Id == targetUserId) ||
+                (d.User1Id == targetUserId && d.User2Id == currentUserId));
+
+        if (existingDialog != null) return existingDialog;
+
+        var dialog = new Dialog
+        {
+            User1Id = currentUserId,
+            User2Id = targetUserId
+        };
+
+        _context.Dialogs.Add(dialog);
+        await _context.SaveChangesAsync();
+        return dialog;
     }
 
     public async Task<List<Message>> GetMessagesAsync(int dialogId)
     {
-        return await _context.Messages
+        var userId = _authService.GetCurrentUserId();
+        var dialog = await _context.Dialogs.FindAsync(dialogId);
+
+        if (dialog == null || (dialog.User1Id != userId && dialog.User2Id != userId))
+            throw new Exception("Доступ запрещен");
+
+        var messages = await _context.Messages
             .Where(m => m.DialogId == dialogId)
             .OrderBy(m => m.Time)
+            .Include(m => m.Sender)
             .ToListAsync();
+
+        // Сбрасываем счетчик непрочитанных для текущего пользователя
+        if (dialog.User1Id == userId) dialog.User1UnreadCount = 0;
+        else dialog.User2UnreadCount = 0;
+        await _context.SaveChangesAsync();
+
+        return messages;
     }
 
     public async Task<Message> SendMessageAsync(int dialogId, string text, IFormFile? attachment)
     {
+        var userId = _authService.GetCurrentUserId();
         var dialog = await _context.Dialogs.FindAsync(dialogId);
-        if (dialog == null) throw new Exception("Dialog not found");
+
+        if (dialog == null || (dialog.User1Id != userId && dialog.User2Id != userId))
+            throw new Exception("Доступ запрещен");
 
         var message = new Message
         {
             DialogId = dialogId,
-            Sender = _context.Users.Find(_authService.GetCurrentUserId())?.Username ?? "Unknown",
+            SenderId = userId,
             Text = text,
             Time = DateTime.Now,
             AttachmentUrl = attachment != null ? await SaveAttachment(attachment) : null
@@ -50,9 +101,12 @@ public class ChatService : IChatService
 
         _context.Messages.Add(message);
         dialog.LastMessage = text;
-        dialog.UnreadCount++;
-        await _context.SaveChangesAsync();
 
+        // Увеличиваем счетчик непрочитанных для другого пользователя
+        if (dialog.User1Id == userId) dialog.User2UnreadCount++;
+        else dialog.User1UnreadCount++;
+
+        await _context.SaveChangesAsync();
         await NotifyClients(message);
         return message;
     }
@@ -74,7 +128,7 @@ public class ChatService : IChatService
         while (webSocket.State == WebSocketState.Open)
         {
             var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-            // Здесь можно добавить обработку входящих сообщений через WebSocket
+            // Можно добавить обработку команд через WebSocket
         }
 
         _sockets.Remove(webSocket);

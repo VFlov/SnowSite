@@ -6,14 +6,16 @@ public class Dialog
     public int Id { get; set; }
 
     [Required]
-    [MaxLength(50)]
-    public string Username { get; set; } = string.Empty;
+    public int User1Id { get; set; }  // Инициатор диалога
+    public User User1 { get; set; }
+
+    [Required]
+    public int User2Id { get; set; }  // Второй участник
+    public User User2 { get; set; }
 
     [MaxLength(200)]
     public string LastMessage { get; set; } = string.Empty;
 
-    [MaxLength(7)]
-    public string AvatarColor { get; set; } = string.Empty;
-    public int UnreadCount { get; set; }
-    public int UserId { get; set; }
+    public int User1UnreadCount { get; set; }
+    public int User2UnreadCount { get; set; }
 }

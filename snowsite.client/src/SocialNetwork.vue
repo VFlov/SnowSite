@@ -3,33 +3,34 @@
     <div class="sidebar">
       <div class="sidebar-header">
         <h3>Диалоги</h3>
-        <span class="online-status">{{ dialogs.length }} контактов</span>
+        <input v-model="searchQuery" placeholder="Найти пользователя..." @input="searchUsers">
       </div>
       <ul class="dialogs">
-        <li v-for="dialog in dialogs"
+        <li v-for="dialog in filteredDialogs"
             :key="dialog.id"
             @click="selectDialog(dialog)"
             :class="{ 'active': selectedDialog?.id === dialog.id }">
-          <div class="avatar" :style="{ backgroundColor: dialog.avatarColor }"></div>
+          <div class="avatar" :style="{ backgroundColor: getAvatarColor(dialog) }"></div>
           <div class="dialog-info">
-            <span class="username">{{ dialog.username }}</span>
+            <span class="username">{{ getDialogUsername(dialog) }}</span>
             <span class="last-message">{{ dialog.lastMessage }}</span>
-            <span v-if="dialog.unreadCount" class="unread-count">{{ dialog.unreadCount }}</span>
+            <span v-if="getUnreadCount(dialog)" class="unread-count">{{ getUnreadCount(dialog) }}</span>
           </div>
         </li>
       </ul>
     </div>
     <div class="chat" v-if="selectedDialog">
       <div class="chat-header">
-        <div class="avatar" :style="{ backgroundColor: selectedDialog.avatarColor }"></div>
-        <span>{{ selectedDialog.username }}</span>
+        <div class="avatar" :style="{ backgroundColor: getAvatarColor(selectedDialog) }"></div>
+        <span>{{ getDialogUsername(selectedDialog) }}</span>
       </div>
       <div class="chat-messages" ref="chatMessages">
         <div v-for="message in messages"
              :key="message.id"
-             :class="['message', message.sender === 'sent' ? 'sent' : 'received']">
+             :class="['message', message.senderId === currentUserId ? 'sent' : 'received']">
           <div class="message-content">
             <span class="message-text">{{ message.text }}</span>
+            <img v-if="message.attachmentUrl" :src="message.attachmentUrl" class="attachment">
             <span class="message-time">{{ formatTime(message.time) }}</span>
           </div>
         </div>
@@ -37,13 +38,11 @@
       <div class="chat-input">
         <input v-model="newMessage"
                @keypress.enter="sendMessage"
-               placeholder="Введите сообщение..."
-               :disabled="!selectedDialog" />
-        <button @click="sendMessage" :disabled="!newMessage.trim()">Отправить</button>
+               placeholder="Введите сообщение..." />
+        <input type="file" ref="fileInput" @change="handleFileUpload" hidden>
+        <button @click="$refs.fileInput.click()">📎</button>
+        <button @click="sendMessage">Отправить</button>
       </div>
-    </div>
-    <div class="chat-placeholder" v-else>
-      <p>Выберите диалог для начала общения</p>
     </div>
   </div>
 </template>
@@ -52,53 +51,107 @@
   export default {
     data() {
       return {
-        token: localStorage.getItem('token'),
-        socket: null,
-        dialogs: [
-          {
-            id: 1,
-            username: 'Иван Иванов',
-            lastMessage: 'Привет!',
-            avatarColor: '#4CAF50',
-            unreadCount: 2
-          },
-          {
-            id: 2,
-            username: 'Мария Петрова',
-            lastMessage: 'Как дела?',
-            avatarColor: '#2196F3',
-            unreadCount: 0
-          }
-        ],
+        dialogs: [],
         selectedDialog: null,
         messages: [],
-        newMessage: ''
+        newMessage: '',
+        searchQuery: '',
+        searchedUsers: [],
+        currentUserId: 0,
+        socket: null,
+        file: null
       };
     },
+    computed: {
+      filteredDialogs() {
+        if (!this.searchQuery) return this.dialogs;
+        return this.dialogs.filter(d =>
+          this.getDialogUsername(d).toLowerCase().includes(this.searchQuery.toLowerCase())
+        );
+      }
+    },
     methods: {
+      async fetchDialogs() {
+        const response = await this.fetchWithAuth('/api/chat/dialogs');
+        this.dialogs = await response.json();
+      },
       async selectDialog(dialog) {
         this.selectedDialog = dialog;
-
-        const response = await this.fetchWithAuth(`https://45.130.214.139:5020/api/chat/messages/${dialog.id}`);
+        const response = await this.fetchWithAuth(`/api/chat/messages/${dialog.id}`);
         this.messages = await response.json();
         this.$nextTick(() => this.scrollToBottom());
       },
-      async getDialogs() {
+      async sendMessage() {
+        if (!this.newMessage.trim() && !this.file) return;
 
+        const formData = new FormData();
+        formData.append('text', this.newMessage);
+        if (this.file) formData.append('attachment', this.file);
+
+        const response = await this.fetchWithAuth(`/api/chat/messages/${this.selectedDialog.id}`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const message = await response.json();
+        this.messages.push(message);
+        this.newMessage = '';
+        this.file = null;
+        this.$nextTick(() => this.scrollToBottom());
       },
-      getMessagesForDialog(dialogId) {
-        // Симуляция загрузки сообщений
-        const messages = {
-          1: [
-            { id: 1, sender: 'received', text: 'Привет!', time: new Date() },
-            { id: 2, sender: 'sent', text: 'Привет! Как дела?', time: new Date() }
-          ],
-          2: [
-            { id: 1, sender: 'received', text: 'Как дела?', time: new Date() },
-            { id: 2, sender: 'sent', text: 'Отлично, а у тебя?', time: new Date() }
-          ]
+      async searchUsers() {
+        if (!this.searchQuery) {
+          this.searchedUsers = [];
+          return;
+        }
+        // Здесь можно добавить endpoint для поиска пользователей
+      },
+      async createDialog(userId) {
+        const response = await this.fetchWithAuth('/api/chat/dialogs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userId)
+        });
+        const newDialog = await response.json();
+        this.dialogs.push(newDialog);
+        this.selectDialog(newDialog);
+      },
+      getDialogUsername(dialog) {
+        return dialog.user1Id === this.currentUserId ? dialog.user2.username : dialog.user1.username;
+      },
+      getAvatarColor(dialog) {
+        return dialog.user1Id === this.currentUserId ? '#2196F3' : '#4CAF50';
+      },
+      getUnreadCount(dialog) {
+        return dialog.user1Id === this.currentUserId ? dialog.user2UnreadCount : dialog.user1UnreadCount;
+      },
+      connectWebSocket() {
+        this.socket = new WebSocket(`ws://localhost:5000/ws?token=${localStorage.getItem('token')}`);
+        this.socket.onmessage = (event) => {
+          const message = JSON.parse(event.data);
+          if (message.dialogId === this.selectedDialog?.id) {
+            this.messages.push(message);
+            this.$nextTick(() => this.scrollToBottom());
+          }
+          const dialog = this.dialogs.find(d => d.id === message.dialogId);
+          if (dialog) {
+            dialog.lastMessage = message.text;
+            if (message.senderId !== this.currentUserId) {
+              if (dialog.user1Id === this.currentUserId) dialog.user2UnreadCount++;
+              else dialog.user1UnreadCount++;
+            }
+          }
         };
-        return messages[dialogId] || [];
+      },
+      fetchWithAuth(url, options = {}) {
+        options.headers = {
+          ...options.headers,
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        };
+        return fetch(url, options);
+      },
+      handleFileUpload(event) {
+        this.file = event.target.files[0];
       },
       async sendMessage() {
         if (!this.newMessage.trim() || !this.selectedDialog) return;
@@ -154,18 +207,11 @@
         };
         return fetch(url, options);
       },
-
-      connectWebSocket() {
-        this.socket = new WebSocket(`ws://45.130.214.139:5020/ws?token=${this.token}`);
-        this.socket.onmessage = (event) => {
-          const message = JSON.parse(event.data);
-          if (message.dialogId === this.selectedDialog?.id) {
-            this.messages.push(message);
-            this.$nextTick(() => this.scrollToBottom());
-          }
-        };
+      created() {
+        this.currentUserId = parseInt(this.$jwtDecode(localStorage.getItem('token')).nameid);
+        this.fetchDialogs();
+        this.connectWebSocket();
       }
-    },
     watch: {
       selectedDialog(newVal) {
         if (newVal) {
@@ -177,6 +223,11 @@
 </script>
 
 <style scoped>
+  .attachment {
+    max-width: 200px;
+    margin-top: 5px;
+    border-radius: 5px;
+  }
   .messenger-container {
     display: flex;
     width: 900px;

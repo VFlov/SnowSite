@@ -23,6 +23,13 @@ namespace SnowSite.Server.Controllers
             return Ok(await _chatService.GetDialogsAsync());
         }
 
+        [HttpPost("dialogs")]
+        public async Task<ActionResult<Dialog>> CreateDialog([FromBody] int targetUserId)
+        {
+            var dialog = await _chatService.CreateDialogAsync(targetUserId);
+            return CreatedAtAction(nameof(GetDialogs), new { id = dialog.Id }, dialog);
+        }
+
         [HttpGet("messages/{dialogId}")]
         public async Task<ActionResult<List<Message>>> GetMessages(int dialogId)
         {
@@ -34,12 +41,6 @@ namespace SnowSite.Server.Controllers
         {
             var message = await _chatService.SendMessageAsync(dialogId, text, attachment);
             return CreatedAtAction(nameof(GetMessages), new { dialogId = message.DialogId }, message);
-        }
-
-        [HttpGet("search")]
-        public async Task<ActionResult<List<Message>>> SearchMessages([FromQuery] string query)
-        {
-            return Ok(await _chatService.SearchMessagesAsync(query));
         }
     }
 }
