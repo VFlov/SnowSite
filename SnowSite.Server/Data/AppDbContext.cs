@@ -14,6 +14,6 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Dialog>()
             .HasOne<User>()
             .WithMany()
-            .HasForeignKey(d => d.UserId);
+            .HasForeignKey(d => d.User2Id);
     }
 }

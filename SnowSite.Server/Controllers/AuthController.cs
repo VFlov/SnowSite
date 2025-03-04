@@ -30,6 +30,13 @@ namespace SnowSite.Server.Controllers
             var token = await _authService.LoginAsync(request.Username, request.Password);
             return Ok(new { Token = token });
         }
+        [HttpPost("logout")]
+        [AllowAnonymous]
+        public async Task<ActionResult<string>> Logout([FromBody] LoginRequest request)
+        {
+            var token = await _authService.LoginAsync(request.Username, request.Password);
+            return Ok(new { Token = token });
+        }
         [HttpPost("register")]
         [AllowAnonymous]
         public async Task<ActionResult> Register([FromBody] RegisterRequest request)

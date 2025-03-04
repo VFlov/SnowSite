@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SnowSite.Server.Data;
 
@@ -10,9 +11,11 @@ using SnowSite.Server.Data;
 namespace SnowSite.Server.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250304120101_Init")]
+    partial class Init
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.2");
@@ -51,7 +54,7 @@ namespace SnowSite.Server.Migrations
 
                     b.HasIndex("User2Id1");
 
-                    b.ToTable("Dialogs", (string)null);
+                    b.ToTable("Dialogs");
                 });
 
             modelBuilder.Entity("SnowSite.Server.Models.Message", b =>
@@ -83,7 +86,7 @@ namespace SnowSite.Server.Migrations
 
                     b.HasIndex("SenderId");
 
-                    b.ToTable("Messages", (string)null);
+                    b.ToTable("Messages");
                 });
 
             modelBuilder.Entity("SnowSite.Server.Models.User", b =>
@@ -103,7 +106,7 @@ namespace SnowSite.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("SnowSite.Server.Models.Dialog", b =>

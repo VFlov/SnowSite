@@ -3,7 +3,13 @@
     <div class="sidebar">
       <div class="sidebar-header">
         <h3>Диалоги</h3>
+        <button @click="logout" class="logout-button">Выйти</button>
         <input v-model="searchQuery" placeholder="Найти пользователя..." @input="searchUsers">
+        <ul class="search-results" v-if="searchedUsers.length">
+          <li v-for="user in searchedUsers" :key="user.id" @click="createDialog(user.id)">
+            {{ user.username }}
+          </li>
+        </ul>
       </div>
       <ul class="dialogs">
         <li v-for="dialog in filteredDialogs"
@@ -25,8 +31,7 @@
         <span>{{ getDialogUsername(selectedDialog) }}</span>
       </div>
       <div class="chat-messages" ref="chatMessages">
-        <div v-for="message in messages"
-             :key="message.id"
+        <div v-for="message in messages" :key="message.id"
              :class="['message', message.senderId === currentUserId ? 'sent' : 'received']">
           <div class="message-content">
             <span class="message-text">{{ message.text }}</span>
@@ -36,9 +41,7 @@
         </div>
       </div>
       <div class="chat-input">
-        <input v-model="newMessage"
-               @keypress.enter="sendMessage"
-               placeholder="Введите сообщение..." />
+        <input v-model="newMessage" @keypress.enter="sendMessage" placeholder="Введите сообщение..." />
         <input type="file" ref="fileInput" @change="handleFileUpload" hidden>
         <button @click="$refs.fileInput.click()">📎</button>
         <button @click="sendMessage">Отправить</button>
@@ -72,42 +75,59 @@
     },
     methods: {
       async fetchDialogs() {
-        const response = await this.fetchWithAuth('/api/chat/dialogs');
+        const response = await this.fetchWithAuth('https://45.130.214.139:5020/api/chat/dialogs');
         this.dialogs = await response.json();
       },
       async selectDialog(dialog) {
+        this.searchedUsers = [];
         this.selectedDialog = dialog;
-        const response = await this.fetchWithAuth(`/api/chat/messages/${dialog.id}`);
+        const response = await this.fetchWithAuth(`https://45.130.214.139:5020/api/chat/messages/${dialog.id}`);
         this.messages = await response.json();
         this.$nextTick(() => this.scrollToBottom());
       },
       async sendMessage() {
         if (!this.newMessage.trim() && !this.file) return;
 
-        const formData = new FormData();
-        formData.append('text', this.newMessage);
-        if (this.file) formData.append('attachment', this.file);
+        try {
+          const formData = new FormData();
+          formData.append('text', this.newMessage);
+          if (this.file) formData.append('attachment', this.file);
 
-        const response = await this.fetchWithAuth(`/api/chat/messages/${this.selectedDialog.id}`, {
-          method: 'POST',
-          body: formData
-        });
+          const response = await this.fetchWithAuth(`https://45.130.214.139:5020/api/chat/messages/${this.selectedDialog.id}`, {
+            method: 'POST',
+            body: formData
+          });
 
-        const message = await response.json();
-        this.messages.push(message);
-        this.newMessage = '';
-        this.file = null;
-        this.$nextTick(() => this.scrollToBottom());
+          if (!response.ok) throw new Error('Ошибка отправки сообщения');
+
+          const message = await response.json();
+          this.messages.push(message);
+          this.updateLastMessage(message.text);
+        } catch (error) {
+          console.error('Ошибка:', error);
+          // Можно добавить визуальное уведомление пользователю
+        } finally {
+          this.newMessage = '';
+          this.file = null;
+          this.$nextTick(() => this.scrollToBottom());
+        }
       },
       async searchUsers() {
-        if (!this.searchQuery) {
+        if (!this.searchQuery.trim()) {
           this.searchedUsers = [];
           return;
         }
-        // Здесь можно добавить endpoint для поиска пользователей
+
+        const response = await this.fetchWithAuth(`https://45.130.214.139:5020/api/chat/search-users?query=${encodeURIComponent(this.searchQuery)}`);
+        if (response.ok) {
+          this.searchedUsers = await response.json();
+        } else {
+          this.searchedUsers = [];
+          console.error('Ошибка поиска пользователей');
+        }
       },
       async createDialog(userId) {
-        const response = await this.fetchWithAuth('/api/chat/dialogs', {
+        const response = await this.fetchWithAuth('https://45.130.214.139:5020/api/chat/dialogs', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(userId)
@@ -115,6 +135,8 @@
         const newDialog = await response.json();
         this.dialogs.push(newDialog);
         this.selectDialog(newDialog);
+        this.searchQuery = '';
+        this.searchedUsers = [];
       },
       getDialogUsername(dialog) {
         return dialog.user1Id === this.currentUserId ? dialog.user2.username : dialog.user1.username;
@@ -143,13 +165,7 @@
           }
         };
       },
-      fetchWithAuth(url, options = {}) {
-        options.headers = {
-          ...options.headers,
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        };
-        return fetch(url, options);
-      },
+
       handleFileUpload(event) {
         this.file = event.target.files[0];
       },
@@ -199,11 +215,25 @@
         localStorage.setItem('token', this.token);
         this.connectWebSocket();
       },
+      async logout() {
+        localStorage.removeItem('token');
+        if (this.socket) {
+          this.socket.close();
+        }
+        this.$router.push('/auth');
+      },
 
-      async fetchWithAuth(url, options = {}) {
+      fetchWithAuth(url, options = {}) {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('Токен отсутствует, перенаправление на страницу авторизации');
+          this.$router.push('/auth');
+          return Promise.reject(new Error('No token available'));
+        }
+
         options.headers = {
           ...options.headers,
-          'Authorization': `Bearer ${this.token}`
+          'Authorization': `Bearer ${token}`
         };
         return fetch(url, options);
       },
@@ -212,6 +242,7 @@
         this.fetchDialogs();
         this.connectWebSocket();
       }
+    },
     watch: {
       selectedDialog(newVal) {
         if (newVal) {
@@ -219,7 +250,7 @@
         }
       }
     }
-  };
+  }
 </script>
 
 <style scoped>
@@ -228,6 +259,7 @@
     margin-top: 5px;
     border-radius: 5px;
   }
+
   .messenger-container {
     display: flex;
     width: 900px;
@@ -422,5 +454,49 @@
     justify-content: center;
     color: #666;
     background: #f0f2f5;
+  }
+
+  .logout-button {
+    padding: 5px 15px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-left: 10px;
+  }
+
+    .logout-button:hover {
+      background: #c82333;
+    }
+
+  .search-results {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0;
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    max-height: 200px;
+    overflow-y: auto;
+    width: calc(100% - 30px);
+    z-index: 10;
+  }
+
+    .search-results li {
+      padding: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+      .search-results li:hover {
+        background: #f0f0f0;
+      }
+
+  .sidebar-header {
+    position: relative;
+    /* Для позиционирования результатов поиска */
   }
 </style>

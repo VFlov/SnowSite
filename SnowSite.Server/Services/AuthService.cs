@@ -49,7 +49,7 @@ namespace SnowSite.Server.Services
             {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.Username)
-        };
+            };
 
             var token = new JwtSecurityToken(
                 _config["Jwt:Issuer"],
@@ -59,6 +59,19 @@ namespace SnowSite.Server.Services
                 signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+        public async Task<List<User>> SearchUsersAsync(string query)
+        {
+            var currentUserId = GetCurrentUserId();
+            return await _context.Users
+                .Where(u => u.Username.Contains(query) && u.Id != currentUserId)
+                .Select(u => new User
+                {
+                    Id = u.Id,
+                    Username = u.Username
+                })
+                .Take(10) // Ограничим количество результатов
+                .ToListAsync();
         }
     }
 }
