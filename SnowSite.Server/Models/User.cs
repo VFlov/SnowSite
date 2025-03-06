@@ -14,3 +14,4 @@ namespace SnowSite.Server.Models
         public string PasswordHash { get; set; } = string.Empty;
     }
 }
+

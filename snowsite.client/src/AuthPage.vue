@@ -49,108 +49,108 @@
 </template>
 
 <script>
-export default {
-  data() {
-    return {
-      isLogin: true,
-      isLoading: false,
-      form: {
-        username: '',
-        password: ''
+  export default {
+    data() {
+      return {
+        isLogin: true,
+        isLoading: false,
+        form: {
+          username: '',
+          password: ''
+        },
+        errors: {
+          username: '',
+          password: ''
+        },
+        error: ''
+      };
+    },
+    methods: {
+      toggleMode() {
+        this.isLogin = !this.isLogin;
+        this.clearErrors();
       },
-      errors: {
-        username: '',
-        password: ''
+      clearError(field) {
+        this.errors[field] = '';
+        this.error = '';
       },
-      error: ''
-    };
-  },
-  methods: {
-    toggleMode() {
-      this.isLogin = !this.isLogin;
-      this.clearErrors();
-    },
-    clearError(field) {
-      this.errors[field] = '';
-      this.error = '';
-    },
-    clearErrors() {
-      this.errors = { username: '', password: '' };
-      this.error = '';
-    },
-    validateForm() {
-      this.clearErrors();
-      let isValid = true;
+      clearErrors() {
+        this.errors = { username: '', password: '' };
+        this.error = '';
+      },
+      validateForm() {
+        this.clearErrors();
+        let isValid = true;
 
-      if (!this.form.username.trim()) {
-        this.errors.username = 'Введите имя пользователя';
-        isValid = false;
-      } else if (this.form.username.length > 50) {
-        this.errors.username = 'Имя пользователя не должно превышать 50 символов';
-        isValid = false;
-      }
-
-      if (!this.form.password) {
-        this.errors.password = 'Введите пароль';
-        isValid = false;
-      } else if (this.form.password.length < 6) {
-        this.errors.password = 'Пароль должен содержать минимум 6 символов';
-        isValid = false;
-      }
-
-      return isValid;
-    },
-    async submitForm() {
-      if (!this.validateForm()) return;
-
-      this.isLoading = true;
-
-      try {
-        if (this.isLogin) {
-          await this.login();
-        } else {
-          await this.register();
+        if (!this.form.username.trim()) {
+          this.errors.username = 'Введите имя пользователя';
+          isValid = false;
+        } else if (this.form.username.length > 50) {
+          this.errors.username = 'Имя пользователя не должно превышать 50 символов';
+          isValid = false;
         }
-      } catch (err) {
-        this.error = err.message || 'Произошла ошибка';
-      } finally {
-        this.isLoading = false;
+
+        if (!this.form.password) {
+          this.errors.password = 'Введите пароль';
+          isValid = false;
+        } else if (this.form.password.length < 6) {
+          this.errors.password = 'Пароль должен содержать минимум 6 символов';
+          isValid = false;
+        }
+
+        return isValid;
+      },
+      async submitForm() {
+        if (!this.validateForm()) return;
+
+        this.isLoading = true;
+
+        try {
+          if (this.isLogin) {
+            await this.login();
+          } else {
+            await this.register();
+          }
+        } catch (err) {
+          this.error = err.message || 'Произошла ошибка';
+        } finally {
+          this.isLoading = false;
+        }
+      },
+      async login() {
+        const response = await fetch('https://45.130.214.139:5020/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.form)
+        });
+
+        if (!response.ok) {
+          throw new Error('Неверные учетные данные');
+        }
+
+        const data = await response.json();
+        localStorage.setItem('token', data.token);
+        this.$emit('authenticated');
+        this.$router.push('/chat');
+      },
+      async register() {
+        // Для регистрации добавим endpoint на backend
+        const response = await fetch('https://45.130.214.139:5020/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.form)
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Ошибка регистрации');
+        }
+
+        // После успешной регистрации автоматически логинимся
+        await this.login();
       }
-    },
-    async login() {
-      const response = await fetch('https://45.130.214.139:5020/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(this.form)
-      });
-
-      if (!response.ok) {
-        throw new Error('Неверные учетные данные');
-      }
-
-      const data = await response.json();
-      localStorage.setItem('token', data.token);
-      this.$emit('authenticated');
-      this.$router.push('/chat');
-    },
-    async register() {
-      // Для регистрации добавим endpoint на backend
-      const response = await fetch('https://45.130.214.139:5020/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(this.form)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Ошибка регистрации');
-      }
-
-      // После успешной регистрации автоматически логинимся
-      await this.login();
     }
-  }
-};
+  };
 </script>
 
 <style scoped>

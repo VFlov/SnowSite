@@ -34,7 +34,8 @@ const routes = [
       }
     }
   },
-  { path: '/chat', redirect: '/auth' }
+  { path: '/chat', redirect: '/auth' },
+  { path: '/uploads/:pathMatch(.*)*', redirect: () => window.location.href }
 
   /*{
     path: '/auth', name: 'auth', component: AuthPage, beforeEnter: (to, from, next) => {

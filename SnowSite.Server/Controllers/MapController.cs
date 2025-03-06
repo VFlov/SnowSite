@@ -11,7 +11,8 @@ namespace SnowSite.Server.Controllers
     [ApiController]
     public class MapController : Controller
     {
-        private const string ConnectionString = "Host=fis-hcs.energoatlas.ru;Username=fishcsimportappuser;Password=EnBd6Uhi;Database=fis_hcs";
+        //private const string ConnectionString = "Host=fis-hcs.energoatlas.ru;Username=fishcsimportappuser;Password=EnBd6Uhi;Database=fis_hcs";
+        private const string ConnectionString = "Host=192.168.0.165;Username=postgres;Password=postgres;Database=postgres";
 
         [HttpGet("gethouses")]
         public IActionResult GetHouses(int start = 0, int count = 100)

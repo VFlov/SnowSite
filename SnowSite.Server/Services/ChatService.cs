@@ -23,6 +23,8 @@ public class ChatService : IChatService
         var userId = _authService.GetCurrentUserId();
         return await _context.Dialogs
             .Where(d => d.User1Id == userId || d.User2Id == userId)
+            .Include(d => d.User1) // Подгружаем User1
+            .Include(d => d.User2) // Подгружаем User2
             .Select(d => new Dialog
             {
                 Id = d.Id,
@@ -43,6 +45,8 @@ public class ChatService : IChatService
         if (currentUserId == targetUserId) throw new Exception("Нельзя создать диалог с самим собой");
 
         var existingDialog = await _context.Dialogs
+            .Include(d => d.User1) // Подгружаем User1
+            .Include(d => d.User2) // Подгружаем User2
             .FirstOrDefaultAsync(d =>
                 (d.User1Id == currentUserId && d.User2Id == targetUserId) ||
                 (d.User1Id == targetUserId && d.User2Id == currentUserId));
@@ -57,7 +61,12 @@ public class ChatService : IChatService
 
         _context.Dialogs.Add(dialog);
         await _context.SaveChangesAsync();
-        return dialog;
+
+        // Загружаем данные пользователей после сохранения
+        return await _context.Dialogs
+            .Include(d => d.User1)
+            .Include(d => d.User2)
+            .FirstAsync(d => d.Id == dialog.Id);
     }
 
     public async Task<List<Message>> GetMessagesAsync(int dialogId)
@@ -102,7 +111,6 @@ public class ChatService : IChatService
         _context.Messages.Add(message);
         dialog.LastMessage = text;
 
-        // Увеличиваем счетчик непрочитанных для другого пользователя
         if (dialog.User1Id == userId) dialog.User2UnreadCount++;
         else dialog.User1UnreadCount++;
 
