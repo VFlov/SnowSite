@@ -5,17 +5,20 @@ using SnowSite.Server.Services;
 using System.Net.WebSockets;
 using System.Text.Json;
 using System.Text;
-
+using SnowSite.Server.Hubs;
+using Microsoft.AspNetCore.SignalR;
 public class ChatService : IChatService
 {
     private readonly AppDbContext _context;
     private readonly IAuthService _authService;
+    private readonly IHubContext<ChatHub> _hubContext;
     private readonly List<WebSocket> _sockets = new();
 
-    public ChatService(AppDbContext context, IAuthService authService)
+    public ChatService(AppDbContext context, IAuthService authService, IHubContext<ChatHub> hubContext)
     {
         _context = context;
         _authService = authService;
+        _hubContext = hubContext;
     }
 
     public async Task<List<Dialog>> GetDialogsAsync()
@@ -128,31 +131,17 @@ public class ChatService : IChatService
             .ToListAsync();
     }
 
-    public async Task HandleWebSocket(WebSocket webSocket)
+
+
+    public async Task NotifyClients(Message message)
     {
-        _sockets.Add(webSocket);
-        var buffer = new byte[1024 * 4];
-
-        while (webSocket.State == WebSocketState.Open)
+        var dialog = await _context.Dialogs.FindAsync(message.DialogId);
+        if (dialog != null)
         {
-            var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-            // Можно добавить обработку команд через WebSocket
-        }
-
-        _sockets.Remove(webSocket);
-    }
-
-    private async Task NotifyClients(Message message)
-    {
-        var json = JsonSerializer.Serialize(message);
-        var bytes = Encoding.UTF8.GetBytes(json);
-
-        foreach (var socket in _sockets.Where(s => s.State == WebSocketState.Open))
-        {
-            await socket.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None);
+            await _hubContext.Clients.Group(dialog.User1Id.ToString()).SendAsync("ReceiveMessage", message);
+            await _hubContext.Clients.Group(dialog.User2Id.ToString()).SendAsync("ReceiveMessage", message);
         }
     }
-
     private async Task<string> SaveAttachment(IFormFile file)
     {
         var path = Path.Combine("wwwroot/uploads", Guid.NewGuid() + Path.GetExtension(file.FileName));

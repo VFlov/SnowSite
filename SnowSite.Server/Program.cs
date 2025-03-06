@@ -8,7 +8,7 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Настройка сервисов
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -20,76 +20,61 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        };
+        // Добавляем поддержку WebSocket
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chatHub"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
         };
     });
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSwaggerGen();
-
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-
+builder.Services.AddSignalR();
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll",
-        builder =>
-        {
-            builder.WithOrigins("https://45.130.214.139:65311", "https://45.130.214.139:5020") // VERY IMPORTANT: SPECIFY YOUR FRONTEND ORIGIN
-                   .AllowAnyMethod()
-                   .AllowAnyHeader()
-                   .AllowCredentials();
-        });
-
+    options.AddPolicy("AllowAll", builder =>
+    {
+        builder.WithOrigins("https://45.130.214.139:65311", "https://45.130.214.139:5020")
+               .AllowAnyMethod()
+               .AllowAnyHeader()
+               .AllowCredentials();
+    });
 });
-builder.Services.AddSignalR();
-builder.Services.AddControllers();
 
 var app = builder.Build();
+
 app.UseCors("AllowAll");
 app.UseRouting();
 app.UseStaticFiles();
 app.UseHttpsRedirection();
 app.UseAuthentication();
-
 app.UseAuthorization();
-app.MapHub<CallHub>("/chatHub");
-
-app.UseWebSockets();
-app.Map("/ws", async context =>
-{
-    if (context.WebSockets.IsWebSocketRequest)
-    {
-        var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-        var chatService = context.RequestServices.GetRequiredService<IChatService>();
-        await chatService.HandleWebSocket(webSocket);
-    }
-    else
-    {
-        context.Response.StatusCode = 400;
-    }
-});
-
-app.UseDefaultFiles();
-app.UseStaticFiles();
-
+app.UseWebSockets(); // Убедитесь, что WebSocket включён
+app.MapHub<ChatHub>("/chatHub");
+app.MapHub<CallHub>("/callHub");
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-
-
-
 app.MapControllers();
-
 app.MapFallbackToFile("/index.html");
-
 
 app.Run();
