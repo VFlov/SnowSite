@@ -27,7 +27,7 @@ export default {
   methods: {
     async housesCount() {
       try {
-        const response = await fetch('https://45.130.214.139:5020/api/Map/housescount');
+        const response = await fetch('https://localhost:5020/api/Map/housescount');
         const data = await response.json();
         this.totalHouses = data;
       } catch (error) {

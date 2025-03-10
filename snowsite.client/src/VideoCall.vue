@@ -2,19 +2,14 @@
   <div class="video-call-wrapper custom-text-color">
     <div class="video-call-container">
       <h1>Voice Chat</h1>
+      <div class="nav-buttons">
+        <button @click="goToHome" class="btn btn-default">Return to Home</button>
+      </div>
 
-      <!-- Navigation -->
-      <button @click="goToHome" class="btn btn-default">Return to Home</button>
-      <button @click="showCreateRoomModal = true" class="btn btn-create bubbly-button">Создать комнату</button>
-
-      <!-- Create Room Modal -->
       <div v-if="showCreateRoomModal" class="modal-overlay">
         <div class="modal-content">
           <h2>Создать комнату</h2>
-          <input type="text"
-                 v-model="roomName"
-                 placeholder="Введите имя комнаты"
-                 class="modal-input">
+          <input type="text" v-model="roomName" placeholder="Введите имя комнаты" class="modal-input">
           <div class="modal-buttons">
             <button @click="createAndJoinRoom" class="btn btn-primary">Создать</button>
             <button @click="showCreateRoomModal = false" class="btn btn-secondary">Отмена</button>
@@ -22,33 +17,26 @@
         </div>
       </div>
 
-      <!-- Join Room Form -->
       <div v-if="!inRoom" class="room-form">
-        <input type="text"
-               v-model="roomName"
-               placeholder="Enter Room Name"
-               class="form-input">
+        <input type="text" v-model="roomName" placeholder="Enter Room Name" class="form-input">
         <button @click="joinRoom" class="btn btn-primary">Join Room</button>
       </div>
 
-      <!-- Room Content -->
       <div v-else class="room-content">
         <p>В комнате: {{ roomName }}</p>
         <button @click="leaveRoom" class="btn btn-secondary">Leave Room</button>
       </div>
 
-      <!-- Audio Elements -->
       <audio ref="localAudio" muted autoplay></audio>
-      <audio v-for="peer in remotePeers"
-             :key="peer.connectionId"
-             :ref="`remoteAudio-${peer.connectionId}`"
-             autoplay></audio>
+      <audio v-for="peer in remotePeers" :key="peer.connectionId" :ref="`remoteAudio-${peer.connectionId}`" autoplay></audio>
     </div>
 
-    <!-- Room Cards -->
     <div class="card-grid">
-      <div v-for="item in items" :key="item.Name" class="card-container">
-        <template-card :item="item" @my-event="joinRoomFromCard" />
+      <div class="card-container">
+        <template-card :item="createRoomCard" @my-event="showCreateRoomModal = true" />
+      </div>
+      <div v-for="item in items" :key="item.name" class="card-container">
+        <template-card v-if="item && item.name" :item="item" @my-event="joinRoomFromCard" />
       </div>
     </div>
   </div>
@@ -74,7 +62,8 @@
         peerConnections: {},
         remotePeers: [],
         originalBodyBackgroundColor: '',
-        originalAppBackgroundColor: ''
+        originalAppBackgroundColor: '',
+        createRoomCard: { name: 'Создать комнату', participantCount: '' } // Фиктивная карточка
       };
     },
     mounted() {
@@ -113,6 +102,7 @@
         this.hubConnection.on("UserLeft", this.handleUserLeft);
         this.hubConnection.on("ReceiveSignal", this.handleReceiveSignal);
         this.hubConnection.on("ReceiveRoomList", (rooms) => {
+          console.log("Received room list:", rooms); // Добавляем лог
           this.items = rooms;
         });
         this.hubConnection.on("JoinedRoom", (roomName) => {
@@ -136,10 +126,11 @@
           if (this.$refs.localAudio) {
             this.$refs.localAudio.srcObject = this.localStream;
           }
+          console.log("Creating and joining room:", this.roomName); // Лог для проверки
+          await this.hubConnection.invoke("CreateRoom", this.roomName, this.userId); // Вызываем CreateRoom
           await this.hubConnection.invoke("JoinRoom", this.roomName, this.userId);
           this.inRoom = true;
           this.showCreateRoomModal = false;
-          await this.hubConnection.invoke("GetRoomList");
         } catch (error) {
           console.error("Error creating and joining room:", error);
         }
@@ -150,6 +141,7 @@
           if (this.$refs.localAudio) {
             this.$refs.localAudio.srcObject = this.localStream;
           }
+          console.log("Invoking JoinRoom with roomName:", this.roomName, "userId:", this.userId);
           await this.hubConnection.invoke("JoinRoom", this.roomName, this.userId);
           this.inRoom = true;
         } catch (error) {
@@ -157,7 +149,9 @@
         }
       },
       async joinRoomFromCard(roomName) {
+        console.log("Received roomName in joinRoomFromCard:", roomName); // Лог входного параметра
         this.roomName = roomName;
+        console.log("Assigned this.roomName:", this.roomName); // Лог после присваивания
         await this.joinRoom();
       },
       async leaveRoom() {
@@ -275,33 +269,47 @@
 </script>
 
 <style scoped>
-  /* Стили остаются без изменений */
   .video-call-wrapper {
     color: #e5dcdc;
+    min-height: 100vh;
+    background: #1d031f;
+    padding: 20px;
   }
 
   .video-call-container {
-    max-width: 600px;
-    margin: 50px auto;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: all 0.3s ease;
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 25px;
+    border-radius: 12px;
+    background: #252525; /* Более темный и профессиональный фон */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    border: 1px solid #333; /* Тонкая граница для четкости */
   }
 
   h1 {
     text-align: center;
-    font-size: 2.5rem;
+    font-size: 2.2rem; /* Уменьшил для компактности */
+    margin-bottom: 20px;
+    color: #70abaf;
+    font-weight: 600;
+    letter-spacing: 1px; /* Добавил для профессиональности */
+  }
+
+  .nav-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
     margin-bottom: 20px;
   }
 
   .btn {
-    padding: 10px 20px;
+    padding: 10px 20px; /* Уменьшил для лаконичности */
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     font-size: 1rem;
-    transition: background-color 0.3s ease, transform 0.2s ease;
+    font-weight: 500;
+    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   }
 
   .btn-default {
@@ -312,17 +320,7 @@
     .btn-default:hover {
       background-color: #5a6268;
       transform: translateY(-1px);
-    }
-
-  .btn-create {
-    background-color: #70abaf;
-    color: #e5dcdc;
-    margin-left: 10px;
-  }
-
-    .btn-create:hover {
-      background-color: #5a8d91;
-      transform: translateY(-1px);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
     }
 
   .btn-primary {
@@ -333,6 +331,7 @@
     .btn-primary:hover {
       background-color: #0056b3;
       transform: translateY(-1px);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
     }
 
   .btn-secondary {
@@ -343,25 +342,40 @@
     .btn-secondary:hover {
       background-color: #5a6268;
       transform: translateY(-1px);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
     }
 
   .room-form, .room-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px; /* Компактное расстояние между элементами */
     margin-top: 20px;
   }
 
   .form-input {
-    width: calc(100% - 22px);
+    width: 100%;
+    max-width: 300px; /* Ограничил ширину для аккуратности */
     padding: 10px;
-    margin-bottom: 10px;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-    transition: border-color 0.3s ease;
+    border-radius: 6px;
+    border: 1px solid #444;
+    background: #333;
+    color: #e5dcdc;
+    font-size: 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
 
     .form-input:focus {
-      border-color: #007bff;
+      border-color: #70abaf;
+      box-shadow: 0 0 6px rgba(112, 171, 175, 0.4);
       outline: none;
     }
+
+  .room-content p {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #e5dcdc;
+  }
 
   .modal-overlay {
     position: fixed;
@@ -369,7 +383,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.7);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -377,22 +391,40 @@
   }
 
   .modal-content {
-    background-color: #fff;
+    background-color: #252525;
     padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    width: 300px;
+    border-radius: 12px;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+    width: 100%;
+    max-width: 320px; /* Уменьшил для компактности */
     text-align: center;
+    color: #e5dcdc;
+    border: 1px solid #333;
   }
 
+    .modal-content h2 {
+      font-size: 1.5rem;
+      margin-bottom: 15px;
+      color: #70abaf;
+      font-weight: 500;
+    }
+
   .modal-input {
-    width: 90%;
+    width: 100%;
     padding: 10px;
-    margin-bottom: 20px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 1em;
+    margin-bottom: 15px;
+    border: 1px solid #444;
+    border-radius: 6px;
+    background: #333;
+    color: #e5dcdc;
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
   }
+
+    .modal-input:focus {
+      border-color: #70abaf;
+      outline: none;
+    }
 
   .modal-buttons {
     display: flex;
@@ -402,13 +434,8 @@
 
   .card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 16px;
-    direction: rtl;
-    padding: 20px;
-  }
-
-  .card-container {
-    direction: ltr;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 25px;
+    padding: 30px;
   }
 </style>

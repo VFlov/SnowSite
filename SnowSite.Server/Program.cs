@@ -1,4 +1,4 @@
-using SnowSite.Server.Data;
+п»їusing SnowSite.Server.Data;
 using SnowSite.Server.Hubs;
 using Microsoft.EntityFrameworkCore;
 using SnowSite.Server.Services;
@@ -8,7 +8,7 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Настройка сервисов
+// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -22,7 +22,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
         };
-        // Добавляем поддержку WebSocket
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ WebSocket
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>
@@ -65,7 +65,7 @@ app.UseStaticFiles();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseWebSockets(); // Убедитесь, что WebSocket включён
+app.UseWebSockets(); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ WebSocket пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 app.MapHub<ChatHub>("/chatHub");
 app.MapHub<CallHub>("/callHub");
 if (app.Environment.IsDevelopment())

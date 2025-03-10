@@ -3,19 +3,7 @@
   <router-view @authenticated="checkAuth"></router-view>
 
 </template>
-<script>
-  export default {
-    methods: {
-      checkAuth() {
-        if (!localStorage.getItem('token')) {
-          this.$router.push('/auth');
-        }
-      }
-    },
-    created() {
-      this.checkAuth();
-    }
-  };</script>
+
 <style>
   #app {
     height: 100%;

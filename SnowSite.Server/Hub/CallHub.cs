@@ -15,16 +15,26 @@ namespace SnowSite.Server.Hubs
         public override async Task OnConnectedAsync()
         {
             var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            Console.WriteLine($"CallHub: Клиент подключился: ConnectionId={Context.ConnectionId}, UserId={userId}");
+
             await base.OnConnectedAsync();
         }
 
-        public void CreateRoom(string roomName, string userId)
+        public async Task CreateRoom(string roomName, string userId) // Добавьте async Task
         {
             Console.WriteLine($"CreateRoom: roomName={roomName}, userId={userId}");
             Rooms[roomName] = new ConcurrentDictionary<string, string>();
             Rooms[roomName][Context.ConnectionId] = userId;
             RoomParticipants[Context.ConnectionId] = roomName;
+            await GetRoomListForAll(); // Уведомляем всех
+        }
+        private async Task GetRoomListForAll()
+        {
+            var roomList = Rooms
+                .Where(r => !string.IsNullOrEmpty(r.Key)) // Фильтруем пустые имена
+                .Select(r => new { Name = r.Key, ParticipantCount = r.Value.Count })
+                .ToList();
+            Console.WriteLine($"GetRoomListForAll: Sending {roomList.Count} rooms to all clients");
+            await Clients.All.SendAsync("ReceiveRoomList", roomList);
         }
 
         public void RemoveRoom(string roomName)
@@ -58,7 +68,7 @@ namespace SnowSite.Server.Hubs
 
             if (!Rooms.ContainsKey(roomName))
             {
-                CreateRoom(roomName, userId);
+                await CreateRoom(roomName, userId); // Используем async версию
             }
             else
             {
@@ -68,7 +78,7 @@ namespace SnowSite.Server.Hubs
 
             await Clients.Group(roomName).SendAsync("UserJoined", Context.ConnectionId, userId);
             await Clients.Caller.SendAsync("JoinedRoom", roomName);
-            await GetRoomList(); // Обновляем список комнат для всех
+            await GetRoomListForAll(); // Уведомляем всех
         }
 
         public async Task LeaveRoom()
@@ -90,7 +100,7 @@ namespace SnowSite.Server.Hubs
                 RoomParticipants.TryRemove(Context.ConnectionId, out _);
                 await Clients.Group(roomName).SendAsync("UserLeft", Context.ConnectionId);
                 await Clients.Caller.SendAsync("LeftRoom", roomName);
-                await GetRoomList(); // Обновляем список комнат для всех
+                await GetRoomListForAll(); // Уведомляем всех
             }
         }
 
@@ -108,7 +118,7 @@ namespace SnowSite.Server.Hubs
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
             await LeaveRoom();
-            Console.WriteLine($"CallHub: Клиент отключился: ConnectionId={Context.ConnectionId}, Exception={exception?.Message}");
+            Console.WriteLine($"CallHub: ConnectionId={Context.ConnectionId}, Exception={exception?.Message}");
             await base.OnDisconnectedAsync(exception);
         }
     }
