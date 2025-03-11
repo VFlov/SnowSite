@@ -1,71 +1,73 @@
-name: Deploy dotSocialNetwork
+name: Deploy SnowSite
 
 on:
   push:
     branches:
-      - master # Разворачиваем при обновлении ветки main
+      - master # Разворачивание при обновлении ветки main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Проверка кода
+      # 1. Чекаут кода
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Установка Node.js для клиентской части
+      # 2. Установка Node.js для клиентской части
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # Установка зависимостей и сборка клиентской части
-      - name: Install and build client
+      # 3. Сборка клиентской части
+      - name: Build SnowSite.client
         run: |
-          cd ${{ github.workspace }}/dotsocialnetwork.client
+          cd SnowSite.client
           npm install
           npm run build
 
-      # Установка .NET SDK для серверной части
+      # 4. Установка .NET для Web API
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
 
-      # Восстановление зависимостей и публикация Web API
-      - name: Build and publish server
+      # 5. Сборка и публикация Web API
+      - name: Build and Publish SnowSite.Server
         run: |
-          cd ${{ github.workspace }}/dotSocialNetwork.Server
-          dotnet restore
+          cd SnowSite.Server
           dotnet publish -c Release -o ./publish
 
-      # Копирование файлов на сервер через SSH
-      - name: Deploy to server
+      # 6. Деплой на сервер через SSH с паролем
+      - name: Deploy to Server
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.SERVER_HOST }} # IP или домен сервера
-          username: ${{ secrets.SERVER_USERNAME }} # Пользователь сервера
-          key: ${{ secrets.SSH_PRIVATE_KEY }} # Приватный SSH-ключ
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
           script: |
             # Остановка служб
-            sudo systemctl stop dotsocialnetwork-client || true
-            sudo systemctl stop dotsocialnetwork-server || true
+            sudo systemctl stop snowsite-client
+            sudo systemctl stop snowsite-api
 
-            # Удаление старых файлов
-            rm -rf /var/www/dotsocialnetwork.client/dist
-            rm -rf /var/www/dotsocialnetwork.server/*
+            # Обновление клиентской части
+            rm -rf /var/www/snowsite/*
+            cp -r ~/repo/SnowSite.client/dist/* /var/www/snowsite/
+            sudo chown -R $USER:$USER /var/www/snowsite
 
-            # Создание директорий
-            mkdir -p /var/www/dotsocialnetwork.client/dist
-            mkdir -p /var/www/dotsocialnetwork.server
-
-            # Копирование клиентской части
-            cp -r ${{ github.workspace }}/dotsocialnetwork.client/dist/* /var/www/dotsocialnetwork.client/dist/
-
-            # Копирование серверной части
-            cp -r ${{ github.workflow }}/dotSocialNetwork.Server/publish/* /var/www/dotsocialnetwork.server/
+            # Обновление Web API
+            rm -rf /var/www/snowsite-api/*
+            cp -r ~/repo/SnowSite.Server/publish/* /var/www/snowsite-api/
+            sudo chown -R $USER:$USER /var/www/snowsite-api
 
             # Перезапуск служб
-            sudo systemctl start dotsocialnetwork-server
-            sudo systemctl start dotsocialnetwork-client
+            sudo systemctl start snowsite-client
+            sudo systemctl start snowsite-api
+
+      # 7. Очистка временных файлов (опционально)
+      - name: Cleanup
+        run: |
+          rm -rf SnowSite.client/dist
+          rm -rf SnowSite.Server/publish
