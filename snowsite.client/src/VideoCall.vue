@@ -6,6 +6,25 @@
         <button @click="goToHome" class="btn btn-default">Return to Home</button>
       </div>
 
+      <!-- Локальная демонстрация экрана -->
+      <div v-if="screenStream" class="screen-share-container">
+        <video ref="screenVideo" autoplay class="screen-video"></video>
+      </div>
+
+      <!-- Демонстрация экрана от других участников -->
+      <div v-for="peer in remotePeers" :key="peer.connectionId" class="screen-share-container">
+        <video v-if="peer.videoStream" :ref="`remoteVideo-${peer.connectionId}`" autoplay class="screen-video"></video>
+      </div>
+
+      <div class="media-controls" v-if="inRoom">
+        <button @click="toggleScreenShare" class="btn btn-primary">
+          {{ screenStream ? 'Остановить демонстрацию' : 'Поделиться экраном' }}
+        </button>
+        <button @click="toggleMicrophone" class="btn btn-secondary">
+          {{ isMicMuted ? 'Включить микрофон' : 'Выключить микрофон' }}
+        </button>
+      </div>
+
       <div v-if="showCreateRoomModal" class="modal-overlay">
         <div class="modal-content">
           <h2>Создать комнату</h2>
@@ -59,10 +78,12 @@
         userId: '',
         inRoom: false,
         localStream: null,
+        screenStream: null,
         peerConnections: {},
         remotePeers: [],
         originalBodyBackgroundColor: '',
         originalAppBackgroundColor: '',
+        isMicMuted: false,
         createRoomCard: { name: 'Создать комнату', participantCount: '' } // Фиктивная карточка
       };
     },
@@ -126,11 +147,10 @@
           if (this.$refs.localAudio) {
             this.$refs.localAudio.srcObject = this.localStream;
           }
-          console.log("Creating and joining room:", this.roomName); // Лог для проверки
-          await this.hubConnection.invoke("CreateRoom", this.roomName, this.userId); // Вызываем CreateRoom
           await this.hubConnection.invoke("JoinRoom", this.roomName, this.userId);
           this.inRoom = true;
           this.showCreateRoomModal = false;
+          await this.hubConnection.invoke("GetRoomList");
         } catch (error) {
           console.error("Error creating and joining room:", error);
         }
@@ -141,7 +161,6 @@
           if (this.$refs.localAudio) {
             this.$refs.localAudio.srcObject = this.localStream;
           }
-          console.log("Invoking JoinRoom with roomName:", this.roomName, "userId:", this.userId);
           await this.hubConnection.invoke("JoinRoom", this.roomName, this.userId);
           this.inRoom = true;
         } catch (error) {
@@ -160,6 +179,10 @@
         if (this.localStream) {
           this.localStream.getTracks().forEach(track => track.stop());
           this.localStream = null;
+        }
+        if (this.screenStream) {
+          this.screenStream.getTracks().forEach(track => track.stop());
+          this.screenStream = null;
         }
         Object.keys(this.peerConnections).forEach(this.closePeerConnection);
         this.remotePeers = [];
@@ -195,13 +218,57 @@
         pc.onicecandidate = event => this.handleIceCandidate(event, connectionId);
         pc.oniceconnectionstatechange = () => this.handleIceStateChange(connectionId);
 
+        // Добавляем локальные треки (аудио и видео, если есть)
         this.localStream?.getTracks().forEach(track => pc.addTrack(track, this.localStream));
+        this.screenStream?.getTracks().forEach(track => pc.addTrack(track, this.screenStream));
+
         this.peerConnections[connectionId] = pc;
+      },
+      async toggleScreenShare() {
+        if (this.screenStream) {
+          // Остановить демонстрацию экрана
+          this.screenStream.getTracks().forEach(track => track.stop());
+          this.screenStream = null;
+          Object.values(this.peerConnections).forEach(pc => {
+            const videoSender = pc.getSenders().find(s => s.track && s.track.kind === 'video');
+            if (videoSender) pc.removeTrack(videoSender);
+            // Обновляем SDP после удаления трека
+            this.createOffer(pc.connectionId || Object.keys(this.peerConnections).find(key => this.peerConnections[key] === pc));
+          });
+        } else {
+          // Начать демонстрацию экрана
+          try {
+            this.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+            this.$nextTick(() => {
+              if (this.$refs.screenVideo) {
+                this.$refs.screenVideo.srcObject = this.screenStream;
+              }
+              // Добавляем видео-трек в существующие соединения и обновляем SDP
+              Object.entries(this.peerConnections).forEach(([connectionId, pc]) => {
+                this.screenStream.getTracks().forEach(track => pc.addTrack(track, this.screenStream));
+                this.createOffer(connectionId);
+              });
+            });
+            this.screenStream.getVideoTracks()[0].onended = () => this.toggleScreenShare();
+          } catch (error) {
+            console.error("Error sharing screen:", error);
+            this.screenStream = null;
+          }
+        }
+      },
+      toggleMicrophone() {
+        if (this.localStream) {
+          this.isMicMuted = !this.isMicMuted;
+          this.localStream.getAudioTracks().forEach(track => {
+            track.enabled = !this.isMicMuted;
+          });
+        }
       },
       async createOffer(connectionId) {
         try {
-          const offer = await this.peerConnections[connectionId].createOffer();
-          await this.peerConnections[connectionId].setLocalDescription(offer);
+          const pc = this.peerConnections[connectionId];
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
           this.hubConnection.invoke("SendSignal", JSON.stringify({ "sdp": offer }), connectionId);
         } catch (error) {
           console.error("Error creating offer:", error);
@@ -231,15 +298,23 @@
         }
       },
       handleTrackEvent(event, connectionId) {
-        if (!this.remotePeers.some(p => p.connectionId === connectionId)) {
-          this.remotePeers.push({ connectionId });
+        const peer = this.remotePeers.find(p => p.connectionId === connectionId);
+        if (!peer) {
+          this.remotePeers.push({ connectionId, videoStream: null });
         }
         this.$nextTick(() => {
-          const audioRef = this.$refs[`remoteAudio-${connectionId}`];
-          if (audioRef && audioRef[0]) {
-            audioRef[0].srcObject = event.streams[0];
-          } else {
-            console.warn(`Audio element for ${connectionId} not found`);
+          if (event.track.kind === 'audio') {
+            const audioRef = this.$refs[`remoteAudio-${connectionId}`];
+            if (audioRef && audioRef[0]) {
+              audioRef[0].srcObject = event.streams[0];
+            }
+          } else if (event.track.kind === 'video') {
+            const videoRef = this.$refs[`remoteVideo-${connectionId}`];
+            const peerIndex = this.remotePeers.findIndex(p => p.connectionId === connectionId);
+            if (videoRef && videoRef[0] && peerIndex !== -1) {
+              this.remotePeers[peerIndex].videoStream = event.streams[0];
+              videoRef[0].srcObject = event.streams[0];
+            }
           }
         });
       },
@@ -260,6 +335,7 @@
           this.remotePeers = this.remotePeers.filter(p => p.connectionId !== connectionId);
         }
       },
+
       cleanupConnections() {
         this.leaveRoom();
         this.hubConnection?.stop();
@@ -281,18 +357,18 @@
     margin: 40px auto;
     padding: 25px;
     border-radius: 12px;
-    background: #252525; /* Более темный и профессиональный фон */
+    background: #252525;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-    border: 1px solid #333; /* Тонкая граница для четкости */
+    border: 1px solid #333;
   }
 
   h1 {
     text-align: center;
-    font-size: 2.2rem; /* Уменьшил для компактности */
+    font-size: 2.2rem;
     margin-bottom: 20px;
     color: #70abaf;
     font-weight: 600;
-    letter-spacing: 1px; /* Добавил для профессиональности */
+    letter-spacing: 1px;
   }
 
   .nav-buttons {
@@ -302,8 +378,29 @@
     margin-bottom: 20px;
   }
 
+  .screen-share-container {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+  }
+
+  .screen-video {
+    max-width: 100%;
+    max-height: 400px;
+    border-radius: 8px;
+    border: 2px solid #70abaf;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .media-controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 20px 0;
+  }
+
   .btn {
-    padding: 10px 20px; /* Уменьшил для лаконичности */
+    padding: 10px 20px;
     border: none;
     border-radius: 6px;
     cursor: pointer;
@@ -349,13 +446,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 15px; /* Компактное расстояние между элементами */
+    gap: 15px;
     margin-top: 20px;
   }
 
   .form-input {
     width: 100%;
-    max-width: 300px; /* Ограничил ширину для аккуратности */
+    max-width: 300px;
     padding: 10px;
     border-radius: 6px;
     border: 1px solid #444;
@@ -396,7 +493,7 @@
     border-radius: 12px;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
     width: 100%;
-    max-width: 320px; /* Уменьшил для компактности */
+    max-width: 320px;
     text-align: center;
     color: #e5dcdc;
     border: 1px solid #333;

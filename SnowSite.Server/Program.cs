@@ -66,7 +66,7 @@ app.UseStaticFiles();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseWebSockets(); 
+app.UseWebSockets();
 app.MapHub<ChatHub>("/chatHub");
 app.MapHub<CallHub>("/callHub");
 if (app.Environment.IsDevelopment())
@@ -77,7 +77,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapControllers();
 app.MapFallbackToFile("/index.html");
-app.Urls.Add("http://0.0.0.0:5020");
+
 app.Run();
 
 //Add-Migration InitialCreate
