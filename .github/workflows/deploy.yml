@@ -21,13 +21,10 @@ jobs:
           node-version: '20'
 
       # Установка зависимостей и сборка клиентской части
-      - name: Install client dependencies
+      - name: Install and build client
         run: |
-          cd /var/www/dotsocialnetwork.client
+          cd ${{ github.workspace }}/dotsocialnetwork.client
           npm install
-      - name: Build client
-        run: |
-          cd /var/www/dotsocialnetwork.client
           npm run build
 
       # Установка .NET SDK для серверной части
@@ -37,13 +34,10 @@ jobs:
           dotnet-version: '9.0.x'
 
       # Восстановление зависимостей и публикация Web API
-      - name: Restore server dependencies
+      - name: Build and publish server
         run: |
-          cd /var/www/dotSocialNetwork.Server
+          cd ${{ github.workspace }}/dotSocialNetwork.Server
           dotnet restore
-      - name: Publish server
-        run: |
-          cd /var/www/dotSocialNetwork.Server
           dotnet publish -c Release -o ./publish
 
       # Копирование файлов на сервер через SSH
@@ -55,20 +49,22 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }} # Приватный SSH-ключ
           script: |
             # Остановка служб
-            sudo systemctl stop dotsocialnetwork-client
-            sudo systemctl stop dotsocialnetwork-server
+            sudo systemctl stop dotsocialnetwork-client || true
+            sudo systemctl stop dotsocialnetwork-server || true
 
             # Удаление старых файлов
             rm -rf /var/www/dotsocialnetwork.client/dist
             rm -rf /var/www/dotsocialnetwork.server/*
 
-            # Копирование клиентской части
+            # Создание директорий
             mkdir -p /var/www/dotsocialnetwork.client/dist
+            mkdir -p /var/www/dotsocialnetwork.server
+
+            # Копирование клиентской части
             cp -r ${{ github.workspace }}/dotsocialnetwork.client/dist/* /var/www/dotsocialnetwork.client/dist/
 
             # Копирование серверной части
-            mkdir -p /var/www/dotsocialnetwork
-            cp -r ${{ github.workspace }}/dotSocialNetwork.Server/publish/* /var/www/dotsocialnetwork.server/
+            cp -r ${{ github.workflow }}/dotSocialNetwork.Server/publish/* /var/www/dotsocialnetwork.server/
 
             # Перезапуск служб
             sudo systemctl start dotsocialnetwork-server
