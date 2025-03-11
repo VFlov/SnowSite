@@ -3,7 +3,7 @@ name: Deploy SnowSite
 on:
   push:
     branches:
-      - master # Разворачивание при обновлении ветки main
+      - main # Разворачивание при обновлении ветки main
 
 jobs:
   deploy:
@@ -14,32 +14,50 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Установка Node.js для клиентской части
+      # 2. Проверка структуры репозитория (для диагностики)
+      - name: List directory contents
+        run: |
+          ls -la
+          pwd
+
+      # 3. Установка Node.js для клиентской части
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      # 3. Сборка клиентской части
+      # 4. Сборка клиентской части
       - name: Build SnowSite.client
         run: |
-          cd SnowSite.client
-          npm install
-          npm run build
+          if [ -d "SnowSite.client" ]; then
+            cd SnowSite.client
+            npm install
+            npm run build
+          else
+            echo "Directory SnowSite.client not found!"
+            ls -la
+            exit 1
+          fi
 
-      # 4. Установка .NET для Web API
+      # 5. Установка .NET для Web API
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
 
-      # 5. Сборка и публикация Web API
+      # 6. Сборка и публикация Web API
       - name: Build and Publish SnowSite.Server
         run: |
-          cd SnowSite.Server
-          dotnet publish -c Release -o ./publish
+          if [ -d "SnowSite.Server" ]; then
+            cd SnowSite.Server
+            dotnet publish -c Release -o ./publish
+          else
+            echo "Directory SnowSite.Server not found!"
+            ls -la
+            exit 1
+          fi
 
-      # 6. Деплой на сервер через SSH с паролем
+      # 7. Деплой на сервер через SSH с паролем
       - name: Deploy to Server
         uses: appleboy/ssh-action@master
         with:
@@ -66,7 +84,7 @@ jobs:
             sudo systemctl start snowsite-client
             sudo systemctl start snowsite-api
 
-      # 7. Очистка временных файлов (опционально)
+      # 8. Очистка временных файлов (опционально)
       - name: Cleanup
         run: |
           rm -rf SnowSite.client/dist
