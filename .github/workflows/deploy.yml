@@ -23,11 +23,11 @@ jobs:
       # Установка зависимостей и сборка клиентской части
       - name: Install client dependencies
         run: |
-          cd dotsocialnetwork.client
+          cd /var/www/dotsocialnetwork.client
           npm install
       - name: Build client
         run: |
-          cd dotsocialnetwork.client
+          cd /var/www/dotsocialnetwork.client
           npm run build
 
       # Установка .NET SDK для серверной части
@@ -39,11 +39,11 @@ jobs:
       # Восстановление зависимостей и публикация Web API
       - name: Restore server dependencies
         run: |
-          cd dotSocialNetwork.Server
+          cd /var/www/dotSocialNetwork.Server
           dotnet restore
       - name: Publish server
         run: |
-          cd dotSocialNetwork.Server
+          cd /var/www/dotSocialNetwork.Server
           dotnet publish -c Release -o ./publish
 
       # Копирование файлов на сервер через SSH
@@ -67,7 +67,7 @@ jobs:
             cp -r ${{ github.workspace }}/dotsocialnetwork.client/dist/* /var/www/dotsocialnetwork.client/dist/
 
             # Копирование серверной части
-            mkdir -p /var/www/dotsocialnetwork.server
+            mkdir -p /var/www/dotsocialnetwork
             cp -r ${{ github.workspace }}/dotSocialNetwork.Server/publish/* /var/www/dotsocialnetwork.server/
 
             # Перезапуск служб
