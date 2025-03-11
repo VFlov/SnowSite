@@ -1,0 +1,75 @@
+name: Deploy dotSocialNetwork
+
+on:
+  push:
+    branches:
+      - master # Разворачиваем при обновлении ветки main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Проверка кода
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Установка Node.js для клиентской части
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Установка зависимостей и сборка клиентской части
+      - name: Install client dependencies
+        run: |
+          cd dotsocialnetwork.client
+          npm install
+      - name: Build client
+        run: |
+          cd dotsocialnetwork.client
+          npm run build
+
+      # Установка .NET SDK для серверной части
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      # Восстановление зависимостей и публикация Web API
+      - name: Restore server dependencies
+        run: |
+          cd dotSocialNetwork.Server
+          dotnet restore
+      - name: Publish server
+        run: |
+          cd dotSocialNetwork.Server
+          dotnet publish -c Release -o ./publish
+
+      # Копирование файлов на сервер через SSH
+      - name: Deploy to server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }} # IP или домен сервера
+          username: ${{ secrets.SERVER_USERNAME }} # Пользователь сервера
+          key: ${{ secrets.SSH_PRIVATE_KEY }} # Приватный SSH-ключ
+          script: |
+            # Остановка служб
+            sudo systemctl stop dotsocialnetwork-client
+            sudo systemctl stop dotsocialnetwork-server
+
+            # Удаление старых файлов
+            rm -rf /var/www/dotsocialnetwork.client/dist
+            rm -rf /var/www/dotsocialnetwork.server/*
+
+            # Копирование клиентской части
+            mkdir -p /var/www/dotsocialnetwork.client/dist
+            cp -r ${{ github.workspace }}/dotsocialnetwork.client/dist/* /var/www/dotsocialnetwork.client/dist/
+
+            # Копирование серверной части
+            mkdir -p /var/www/dotsocialnetwork.server
+            cp -r ${{ github.workspace }}/dotSocialNetwork.Server/publish/* /var/www/dotsocialnetwork.server/
+
+            # Перезапуск служб
+            sudo systemctl start dotsocialnetwork-server
+            sudo systemctl start dotsocialnetwork-client

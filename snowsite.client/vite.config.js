@@ -53,7 +53,7 @@ export default defineConfig({
             }
         },
         host: '0.0.0.0',
-        port: 65311,
+        port: 8080,
         https: {
             key: fs.readFileSync(keyFilePath),
             cert: fs.readFileSync(certFilePath),

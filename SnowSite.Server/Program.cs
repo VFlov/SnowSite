@@ -42,7 +42,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSignalR();
@@ -65,7 +65,7 @@ app.UseStaticFiles();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseWebSockets(); // ���������, ��� WebSocket �������
+app.UseWebSockets(); 
 app.MapHub<ChatHub>("/chatHub");
 app.MapHub<CallHub>("/callHub");
 if (app.Environment.IsDevelopment())
@@ -76,5 +76,9 @@ if (app.Environment.IsDevelopment())
 
 app.MapControllers();
 app.MapFallbackToFile("/index.html");
-
+app.Urls.Add("http://0.0.0.0:5020");
 app.Run();
+
+//Add-Migration InitialCreate
+//Update-Database
+//Remove-Migration
