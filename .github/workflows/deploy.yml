@@ -25,15 +25,12 @@ jobs:
 
     - name: Install frontend dependencies
       working-directory: ./snowsite.client
-      run: |
-        npm install
-        npm install -g vite
+      run: npm install
 
     - name: Build frontend
       working-directory: ./snowsite.client
-      run: npm install @microsoft/signalr && npm install webrtc-adapter && npm run build
-      env:
-          NODE_ENV: production
+      run: npm install @microsoft/signalr && npm install webrtc-adapter &&npm run build
+      
 
     - name: Restore backend dependencies
       working-directory: ./SnowSite.Server
