@@ -7,7 +7,7 @@ const config = {
     frontendPort: 65311
   },
   production: {
-    apiBaseUrl: 'http://0.0.0.0:5000',
+    apiBaseUrl: 'https://0.0.0.0:5000',
     frontendPort: 80
   }
 };
