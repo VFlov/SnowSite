@@ -38,23 +38,23 @@ jobs:
         working-directory: ./SnowSite.Server
         run: dotnet publish -c Release -o ./publish
 
-      - name: Deploy to production server
-          env:
-            SERVER_IP: ${{ secrets.SSH_HOST }}
-            SERVER_USER: ${{ secrets.SSH_USERNAME }}
-            SERVER_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-          run: |
-            sudo apt-get update && sudo apt-get install -y sshpass
-            
-            sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /var/www/snowsite/prod && mkdir -p /var/www/snowsite/prod/client"
-            
-            sshpass -p "$SERVER_PASSWORD" scp -r ./snowsite.client/dist/* $SERVER_USER@$SERVER_IP:/var/www/snowsite/prod/client/
-            sshpass -p "$SERVER_PASSWORD" scp -r ./SnowSite.Server/publish/* $SERVER_USER@$SERVER_IP:/var/www/snowsite/prod/
-            
-            sshpass -p "$SERVER_PASSWORD" ssh -t $SERVER_USER@$SERVER_IP << 'EOF'
-              pkill -f "dotnet.*SnowSite.Server.dll" || true
-              nohup dotnet /var/www/snowsite/prod/SnowSite.Server.dll \
-                --urls "http://localhost:5000" \
-                --environment Production > prod.log 2>&1 &
-              sudo systemctl restart nginx
-            EOF
+- name: Deploy to production server
+  env:
+    SERVER_IP: ${{ secrets.SSH_HOST }}
+    SERVER_USER: ${{ secrets.SSH_USERNAME }}
+    SERVER_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+  run: |
+    sudo apt-get update && sudo apt-get install -y sshpass
+    
+    sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /var/www/snowsite/prod && mkdir -p /var/www/snowsite/prod/client"
+    
+    sshpass -p "$SERVER_PASSWORD" scp -r ./snowsite.client/dist/* $SERVER_USER@$SERVER_IP:/var/www/snowsite/prod/client/
+    sshpass -p "$SERVER_PASSWORD" scp -r ./SnowSite.Server/publish/* $SERVER_USER@$SERVER_IP:/var/www/snowsite/prod/
+    
+    sshpass -p "$SERVER_PASSWORD" ssh -t $SERVER_USER@$SERVER_IP << 'EOF'
+      pkill -f "dotnet.*SnowSite.Server.dll" || true
+      nohup dotnet /var/www/snowsite/prod/SnowSite.Server.dll \
+        --urls "http://localhost:5000" \
+        --environment Production > prod.log 2>&1 &
+      sudo systemctl restart nginx
+    EOF
