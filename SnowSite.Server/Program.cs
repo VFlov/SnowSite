@@ -20,11 +20,13 @@ builder.WebHost.ConfigureKestrel(options =>
         listenOptions.UseHttps("/etc/letsencrypt/live/vflov.ru/fullchain.pem", "/etc/letsencrypt/live/vflov.ru/privkey.pem");
     });
 });
+/*
 builder.Services.AddLogging(logging =>
 {
     logging.AddConsole();
     logging.AddFile("/var/www/snowsite/prod/prod.log");
 });
+*/
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -88,7 +90,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-}
+app.UseHttpsRedirection();
 
 app.MapControllers();
 app.MapFallbackToFile("/index.html");
