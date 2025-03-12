@@ -40,9 +40,9 @@ jobs:
 
       - name: Deploy to production server
         env:
-          SERVER_IP: ${{ secrets.SERVER_IP }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-          SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+          SERVER_IP: ${{ secrets.SSH_HOST }}
+          SERVER_USER: ${{ secrets.SSH_USERNAME }}
+          SERVER_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
           sudo apt-get update && sudo apt-get install -y sshpass
           
