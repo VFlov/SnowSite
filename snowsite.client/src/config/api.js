@@ -2,11 +2,11 @@ const ENV = process.env.NODE_ENV || 'development';
 
 const config = {
   development: {
-    apiBaseUrl: 'http://vflov.ru:65311', // Для dev используем порт 65311
+    apiBaseUrl: 'http://vflov.ru:5000', // Для dev используем порт 65311
     frontendPort: 65311
   },
   production: {
-    apiBaseUrl: 'https://vflov.ru', // HTTPS для продакшн
+    apiBaseUrl: 'https://vflov.ru:5020', // HTTPS для продакшн
     frontendPort: 443
   }
 };
