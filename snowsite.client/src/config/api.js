@@ -3,11 +3,11 @@ const ENV = process.env.NODE_ENV || 'development';
 
 const config = {
   development: {
-    apiBaseUrl: 'https://localhost:5020',
+    apiBaseUrl: 'https://45.130.214.139:5020',
     frontendPort: 65311
   },
   production: {
-    apiBaseUrl: 'https://localhost:5000',
+    apiBaseUrl: 'https://45.130.214.139:5000',
     frontendPort: 80
   }
 };
