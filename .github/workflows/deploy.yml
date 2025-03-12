@@ -1,0 +1,87 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Install frontend dependencies
+      working-directory: ./snowsite.client
+      run: npm install
+
+    - name: Build frontend
+      working-directory: ./snowsite.client
+      run: npm run build
+
+    - name: Restore backend dependencies
+      working-directory: ./SnowSite.Server
+      run: dotnet restore
+
+    - name: Build backend
+      working-directory: ./SnowSite.Server
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Publish backend
+      working-directory: ./SnowSite.Server
+      run: dotnet publish --configuration Release --output ./publish
+
+    - name: Deploy to server
+      env:
+        SERVER_IP: ${{ secrets.SERVER_IP }}
+        SERVER_USER: ${{ secrets.SERVER_USER }}
+        SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+      run: |
+        # Install sshpass for password-based SSH
+        sudo apt-get update && sudo apt-get install -y sshpass
+        
+        # Create deployment directory
+        sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /var/www/snowsite"
+        
+        # Copy files
+        sshpass -p "$SERVER_PASSWORD" scp -r ./SnowSite.Server/publish/* $SERVER_USER@$SERVER_IP:/var/www/snowsite/
+        
+        # Restart application
+        sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP << 'EOF'
+          # Stop existing service if running
+          sudo systemctl stop snowsite.service || true
+          
+          # Create systemd service file
+          sudo bash -c 'cat > /etc/systemd/system/snowsite.service' << 'SERVICE'
+          [Unit]
+          Description=SnowSite Web Application
+          
+          [Service]
+          WorkingDirectory=/var/www/snowsite
+          ExecStart=/usr/bin/dotnet /var/www/snowsite/SnowSite.Server.dll --urls "http://0.0.0.0:80;https://0.0.0.0:443;http://0.0.0.0:5000"
+          Restart=always
+          RestartSec=10
+          SyslogIdentifier=snowsite
+          Environment=ASPNETCORE_ENVIRONMENT=Production
+          
+          [Install]
+          WantedBy=multi-user.target
+          SERVICE
+          
+          # Reload systemd and start service
+          sudo systemctl daemon-reload
+          sudo systemctl enable snowsite.service
+          sudo systemctl start snowsite.service
+        EOF
