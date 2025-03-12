@@ -14,10 +14,10 @@ builder.WebHost.ConfigureKestrel(options =>
     // HTTP на порту 80
     options.ListenAnyIP(80);
 
-    // HTTPS на порту 443 с сертификатом
+    // HTTPS на порту 443 с PFX-сертификатом
     options.ListenAnyIP(443, listenOptions =>
     {
-        listenOptions.UseHttps("/etc/letsencrypt/live/vflov.ru/fullchain.pem", "/etc/letsencrypt/live/vflov.ru/privkey.pem");
+        listenOptions.UseHttps("/etc/letsencrypt/live/vflov.ru/vflov.ru.pfx", "Fefelov228");
     });
 });
 /*
@@ -55,9 +55,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             }
         };
     });
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -83,6 +85,7 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseWebSockets();
+
 app.MapHub<ChatHub>("/chatHub");
 app.MapHub<CallHub>("/callHub");
 if (app.Environment.IsDevelopment())
