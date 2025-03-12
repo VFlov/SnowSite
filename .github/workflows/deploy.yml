@@ -26,7 +26,7 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: ./snowsite.client
-        run: npm ci
+        run: npm ci && npm install @microsoft/signalr && npm install webrtc-adapter
 
       - name: Build frontend
         working-directory: ./snowsite.client
