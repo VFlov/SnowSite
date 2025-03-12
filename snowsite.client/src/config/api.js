@@ -6,7 +6,7 @@ const config = {
     frontendPort: 65311
   },
   production: {
-    apiBaseUrl: 'http://vflov.ru:5000', // HTTPS для продакшн
+    apiBaseUrl: 'https://vflov.ru:5000', // HTTPS для продакшн
     frontendPort: 443
   }
 };
