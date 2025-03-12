@@ -57,4 +57,4 @@ jobs:
               --urls "http://localhost:5000" \
               --environment Production > prod.log 2>&1 &
             sudo systemctl restart nginx
-EOF
+            EOF
