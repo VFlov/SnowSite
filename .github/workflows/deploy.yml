@@ -45,12 +45,10 @@ jobs:
 
     - name: Deploy to server
       env:
-        SERVER_IP: ${{ secrets.SERVER_IP }}
-        SERVER_USER: ${{ secrets.SERVER_USER }}
-        SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+        SERVER_IP: ${{ secrets.SSH_HOST }}
+        SERVER_USER: ${{ secrets.SSH_USERNAME }}
+        SERVER_PASSWORD: ${{ secrets.SSH_PASSWORD }}
       run: |
-        # Install sshpass for password-based SSH
-        sudo apt-get update && sudo apt-get install -y sshpass
         
         # Create deployment directory
         sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /var/www/snowsite"
