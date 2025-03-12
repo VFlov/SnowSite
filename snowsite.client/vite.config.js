@@ -58,7 +58,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: `http://localhost:${currentPorts.api}`,
+        target: `http://0.0.0.0:${currentPorts.api}`,
         changeOrigin: true,
         secure: false,
         // Убираем префикс /api при проксировании если нужно
