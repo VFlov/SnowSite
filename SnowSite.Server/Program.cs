@@ -50,7 +50,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", builder =>
     {
-        builder.WithOrigins("https:
+        builder.WithOrigins("https://45.130.214.139:65311", "https://45.130.214.139:5020")
                .AllowAnyMethod()
                .AllowAnyHeader()
                .AllowCredentials();
