@@ -10,7 +10,7 @@
 
 <script>
   import MapComponent from './components/MapComponent.vue';
-
+  import { getApiUrl } from '@/config/api';
   export default {
     components: {
       MapComponent
@@ -27,7 +27,7 @@
     methods: {
       async housesCount() {
         try {
-          const response = await fetch('https://45.130.214.139:5020/api/Map/housescount');
+          const response = await fetch(getApiUrl('/api/Map/housescount'));
           const data = await response.json();
           this.totalHouses = data;
         } catch (error) {

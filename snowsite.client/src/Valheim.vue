@@ -51,6 +51,7 @@
 </template>
 
 <script>
+  import { getApiUrl } from '@/config/api';
   import { ref, onMounted } from 'vue';
 
   export default {
@@ -61,7 +62,7 @@
 
       const fetchNews = async () => {
         try {
-          const response = await fetch('https://45.130.214.139:5020/api/news');
+          const response = await fetch(getApiUrl('/api/news'));
           newsItems.value = await response.json();
         } catch (error) {
           console.error('Error fetching news:', error);

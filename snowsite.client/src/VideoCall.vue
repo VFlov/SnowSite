@@ -77,6 +77,7 @@
 </template>
 
 <script>
+  import { getApiUrl } from '@/config/api';
   import TemplateCard from './components/Card.vue';
   import * as signalR from "@microsoft/signalr";
   import * as adapter from 'webrtc-adapter';
@@ -132,7 +133,7 @@
           return;
         }
         this.hubConnection = new signalR.HubConnectionBuilder()
-          .withUrl("https://45.130.214.139:5020/callHub", { accessTokenFactory: () => token })
+          .withUrl(getApiUrl("/callHub"), { accessTokenFactory: () => token })
           .withAutomaticReconnect()
           .build();
 

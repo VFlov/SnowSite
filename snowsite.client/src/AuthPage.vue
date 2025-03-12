@@ -49,6 +49,7 @@
 </template>
 
 <script>
+  import { getApiUrl } from '@/config/api';
   export default {
     data() {
       return {
@@ -118,7 +119,7 @@
         }
       },
       async login() {
-        const response = await fetch('https://45.130.214.139:5020/api/auth/login', {
+        const response = await fetch(getApiUrl('/api/auth/login'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(this.form)
@@ -135,7 +136,7 @@
       },
       async register() {
         // Для регистрации добавим endpoint на backend
-        const response = await fetch('https://45.130.214.139:5020/api/auth/register', {
+        const response = await fetch(getApiUrl('/api/auth/register'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(this.form)

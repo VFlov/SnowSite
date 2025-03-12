@@ -53,6 +53,7 @@
 </template>
 
 <script>
+  import { getApiUrl } from '@/config/api';
   import { jwtDecode } from 'jwt-decode';
   import { HubConnectionBuilder, HttpTransportType } from '@microsoft/signalr';
 
@@ -74,14 +75,14 @@
     },
     methods: {
       async fetchDialogs() {
-        const response = await this.fetchWithAuth('https://45.130.214.139:5020/api/chat/dialogs');
+        const response = await this.fetchWithAuth(getApiUrl('/api/chat/dialogs'));
         if (response.ok) this.dialogs = await response.json();
         else this.$router.push('/auth');
       },
       async selectDialog(dialog) {
         this.searchedUsers = [];
         this.selectedDialog = dialog;
-        const response = await this.fetchWithAuth(`https://45.130.214.139:5020/api/chat/messages/${dialog.id}`);
+        const response = await this.fetchWithAuth(getApiUrl(`/api/chat/messages/${dialog.id}`));
         if (response.ok) {
           this.messages = await response.json();
           this.$nextTick(() => this.scrollToBottom());
@@ -94,12 +95,12 @@
           this.searchedUsers = [];
           return;
         }
-        const response = await this.fetchWithAuth(`https://45.130.214.139:5020/api/chat/search-users?query=${encodeURIComponent(this.searchQuery)}`);
+        const response = await this.fetchWithAuth(getApiUrl(`/api/chat/search-users?query=${encodeURIComponent(this.searchQuery)}`));
         if (response.ok) this.searchedUsers = await response.json();
         else if (response.status === 401) this.$router.push('/auth');
       },
       async createDialog(userId) {
-        const response = await this.fetchWithAuth('https://45.130.214.139:5020/api/chat/dialogs', {
+        const response = await this.fetchWithAuth(getApiUrl('/api/chat/dialogs'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(userId)
@@ -129,7 +130,7 @@
         formData.append('text', this.newMessage);
         if (this.file) formData.append('attachment', this.file);
 
-        const response = await this.fetchWithAuth(`https://45.130.214.139:5020/api/chat/messages/${this.selectedDialog.id}`, {
+        const response = await this.fetchWithAuth(getApiUrl(`/api/chat/messages/${this.selectedDialog.id}`), {
           method: 'POST',
           body: formData
         });
@@ -152,7 +153,7 @@
           return;
         }
         this.connection = new HubConnectionBuilder()
-          .withUrl('https://45.130.214.139:5020/chatHub', {
+          .withUrl(getApiUrl('/chatHub'), {
             accessTokenFactory: () => token,
             transport: HttpTransportType.WebSockets
           })

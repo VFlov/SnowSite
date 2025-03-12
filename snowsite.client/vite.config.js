@@ -1,46 +1,55 @@
 import { fileURLToPath, URL } from 'node:url';
-
 import { defineConfig } from 'vite';
-import plugin from '@vitejs/plugin-vue';
+import vuePlugin from '@vitejs/plugin-vue';
 import fs from 'fs';
 import path from 'path';
 import child_process from 'child_process';
 import { env } from 'process';
 
+const isProduction = process.env.NODE_ENV === 'production';
 
-const baseFolder =
-  env.APPDATA !== undefined && env.APPDATA !== ''
-    ? `${env.APPDATA}/ASP.NET/https`
-    : `${env.HOME}/.aspnet/https`;
+// Настройки портов для разных окружений
+const ports = {
+  development: {
+    frontend: 65311,
+    api: 5020
+  },
+  production: {
+    frontend: 80,
+    api: 5000
+  }
+};
 
+const currentPorts = isProduction ? ports.production : ports.development;
+
+// Настройки сертификатов (только для разработки)
+const baseFolder = env.APPDATA ? `${env.APPDATA}/ASP.NET/https` : `${env.HOME}/.aspnet/https`;
 const certificateName = "snowsite.client";
 const certFilePath = path.join(baseFolder, `${certificateName}.pem`);
 const keyFilePath = path.join(baseFolder, `${certificateName}.key`);
 
-if (!fs.existsSync(baseFolder)) {
-  fs.mkdirSync(baseFolder, { recursive: true });
-}
+if (!isProduction) {
+  if (!fs.existsSync(baseFolder)) {
+    fs.mkdirSync(baseFolder, { recursive: true });
+  }
 
-if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath)) {
-  if (0 !== child_process.spawnSync('dotnet', [
-    'dev-certs',
-    'https',
-    '--export-path',
-    certFilePath,
-    '--format',
-    'Pem',
-    '--no-password',
-  ], { stdio: 'inherit', }).status) {
-    throw new Error("Could not create certificate.");
+  if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath)) {
+    if (0 !== child_process.spawnSync('dotnet', [
+      'dev-certs',
+      'https',
+      '--export-path',
+      certFilePath,
+      '--format',
+      'Pem',
+      '--no-password',
+    ], { stdio: 'inherit' }).status) {
+      throw new Error("Could not create certificate.");
+    }
   }
 }
 
-const target = env.ASPNETCORE_HTTPS_PORT ? `https://0.0.0.0:${env.ASPNETCORE_HTTPS_PORT}` :
-  env.ASPNETCORE_URLS ? env.ASPNETCORE_URLS.split(';')[0] : 'http://0.0.0.0:5020';
-
-// https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [plugin()],
+  plugins: [vuePlugin()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
@@ -48,16 +57,27 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '^/weatherforecast': {
-        target,
-        secure: false
+      '/api': {
+        target: `http://localhost:${currentPorts.api}`,
+        changeOrigin: true,
+        secure: false,
+        // Убираем префикс /api при проксировании если нужно
+        rewrite: (path) => path.replace(/^\/api/, '')
       }
     },
     host: '0.0.0.0',
-    port: 65311,
-    https: {
-      key: fs.readFileSync(keyFilePath),
-      cert: fs.readFileSync(certFilePath),
-    }
+    port: currentPorts.frontend,
+    // Используем HTTPS только в разработке
+    ...(isProduction ? {} : {
+      https: {
+        key: fs.readFileSync(keyFilePath),
+        cert: fs.readFileSync(certFilePath),
+      }
+    })
+  },
+  build: {
+    // Указываем порт для production сборки
+    outDir: 'dist',
+    assetsDir: 'assets',
   }
-})
+});

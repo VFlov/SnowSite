@@ -3,6 +3,7 @@
 </template>
 
 <script>
+  import { getApiUrl } from '@/config/api';
 export default {
   name: 'MapComponent',
   data() {
@@ -29,7 +30,7 @@ export default {
   methods: {
     async fetchHouses() {
       try {
-        const response = await fetch('https://45.130.214.139:5020/api/Map/gethouses');
+        const response = await fetch(getApiUrl('/api/Map/gethouses'));
         const data = await response.json();
         this.houses = data;
         this.$emit('houses-loaded', this.houses.length);
