@@ -131,7 +131,7 @@
         const data = await response.json();
         localStorage.setItem('token', data.token);
         this.$emit('authenticated');
-        this.$router.push('/chat');
+        this.$router.push('/');
       },
       async register() {
         // Для регистрации добавим endpoint на backend

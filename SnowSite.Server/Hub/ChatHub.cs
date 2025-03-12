@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace SnowSite.Server.Hubs
 {
-    [Authorize] // Добавляем авторизацию для SignalR
+    [Authorize]
     public class ChatHub : Hub
     {
         private readonly IChatService _chatService;
@@ -43,15 +43,11 @@ namespace SnowSite.Server.Hubs
 
         public async Task SendMessage(int dialogId, string text)
         {
-            // Логика отправки сообщения уже есть в ChatService, используем её
-            var message = await _chatService.SendMessageAsync(dialogId, text, null); // attachment пока не передаём через SignalR
+            var message = await _chatService.SendMessageAsync(dialogId, text, null);
 
-            // Отправляем сообщение участникам диалога
             var userId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userId != null)
             {
-                //var dialog = await _context.Dialogs.FindAsync(dialogId); // Ошибка была здесь
-                // Вместо этого передаём уведомление через ChatService
                 await _chatService.NotifyClients(message);
             }
         }

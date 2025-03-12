@@ -4,7 +4,10 @@
       <div class="box" :style="gradientStyle" @click="handleClick">
         <b class="name">
           <span v-if="item.name === 'Создать комнату'">{{ item.name }}</span>
-          <span v-else>Комната<br><h2>{{ item.name }}</h2></span>
+          <span v-else>
+            Комната<br>
+            <h2>{{ item.name }}</h2>
+          </span>
         </b>
         <div v-if="item.name === 'Создать комнату'" class="image-placeholder"></div>
         <p v-else class="count">Участников {{ item.participantCount }}</p>
@@ -75,7 +78,7 @@
     justify-content: center;
     align-items: center;
     flex-wrap: wrap;
-    padding: 50px;
+    padding: 20px;
     gap: 50px;
   }
 
@@ -90,18 +93,24 @@
     justify-content: center;
     align-items: center;
     text-align: center;
-    cursor: pointer; /* Указывает, что карточка кликабельна */
-    transition: transform 0.3s ease, box-shadow 0.3s ease; /* Анимация */
+    cursor: pointer;
+    /* Указывает, что карточка кликабельна */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    /* Анимация */
   }
 
     .box:hover {
-      transform: scale(1.05); /* Легкое увеличение при наведении */
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4); /* Тень при наведении */
+      transform: scale(1.05);
+      /* Легкое увеличение при наведении */
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+      /* Тень при наведении */
     }
 
     .box:active {
-      transform: scale(0.95); /* Уменьшение при клике */
-      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2); /* Меньшая тень при клике */
+      transform: scale(0.95);
+      /* Уменьшение при клике */
+      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+      /* Меньшая тень при клике */
     }
 
     .box::before {
@@ -168,9 +177,28 @@
     border-radius: 10px;
     margin-top: 20px;
     z-index: 2;
-    background-image: url('../assets/icons/AddRoom.png'); /*  Добавляем изображение */
-    background-size: contain; /*  Масштабируем изображение, чтобы оно поместилось внутри */
-    background-repeat: no-repeat; /*  Не повторяем изображение */
-    background-position: center; /*  Центрируем изображение */
+    background-image: url('../assets/icons/AddRoom.png');
+    /*  Добавляем изображение */
+    background-size: contain;
+    /*  Масштабируем изображение, чтобы оно поместилось внутри */
+    background-repeat: no-repeat;
+    /*  Не повторяем изображение */
+    background-position: center;
+    /*  Центрируем изображение */
+  }
+
+  .container .box:nth-child(1)::before,
+  .container .box:nth-child(1)::after {
+    background: linear-gradient(45deg, #ffbc00, #ff0058);
+  }
+
+  .container .box:nth-child(2)::before,
+  .container .box:nth-child(2)::after {
+    background: linear-gradient(45deg, #03a9f4, #ff0058);
+  }
+
+  .container .box:nth-child(3)::before,
+  .container .box:nth-child(3)::after {
+    background: linear-gradient(45deg, #4dff03, #00d0ff);
   }
 </style>

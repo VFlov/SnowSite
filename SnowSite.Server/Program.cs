@@ -8,7 +8,7 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ��������� ��������
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -22,7 +22,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
         };
-        // ��������� ��������� WebSocket
+
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>
@@ -37,8 +37,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             }
         };
     });
-
-
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
@@ -52,7 +50,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", builder =>
     {
-        builder.WithOrigins("https://45.130.214.139:65311", "https://45.130.214.139:5020")
+        builder.WithOrigins("https:
                .AllowAnyMethod()
                .AllowAnyHeader()
                .AllowCredentials();
@@ -82,6 +80,5 @@ app.MapFallbackToFile("/index.html");
 
 app.Run();
 
-//Add-Migration InitialCreate
-//Update-Database
-//Remove-Migration
+
+

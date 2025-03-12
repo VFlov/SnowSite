@@ -72,10 +72,10 @@
         githubUsername: "VFlov",
         githubLink: "https://github.com/VFlov",
         navItems: [
-          { href: "chat", label: "Соц сеть" },
           { href: "examples", label: "Веб примеры" },
           { href: "map", label: "Карта" },
-          { href: "videocall", label: "Calls" },
+          { href: "chat", label: "Месседжер" },
+          { href: "videocall", label: "Голосовой чат" },
         ],
         projects: ["Проект 1", "Проект 2", "Проект 3"],
         skills: [

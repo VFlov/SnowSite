@@ -10,9 +10,8 @@ import Examples from './Examples.vue';
 import VideoCall from './VideoCall.vue';
 import Valheim from './Valheim.vue';
 import AuthPage from './AuthPage.vue'
+import AppLayout from './components/AppLayout.vue';
 
-//const Home = { template: Card }
-//const SocialNetwork = { template: Social }
 
 const routes = [
   { path: '/', name: 'card', component: Main },
@@ -24,7 +23,7 @@ const routes = [
   { path: '/valheim', name: 'valheim', component: Valheim },
   { path: '/auth', component: AuthPage },
   {
-    path: '/chat',
+    path: '/',
     component: Social,
     beforeEnter: (to, from, next) => {
       if (!localStorage.getItem('token')) {
@@ -34,23 +33,9 @@ const routes = [
       }
     }
   },
-  { path: '/chat', redirect: '/auth' },
+
   { path: '/uploads/:pathMatch(.*)*', redirect: () => window.location.href }
 
-  /*{
-    path: '/auth', name: 'auth', component: AuthPage, beforeEnter: (to, from, next) => {
-      if (!localStorage.getItem('token')) {
-        next('/auth');
-      } else {
-        next();
-      }
-    }, beforeLeave: (to, from, next) => {
-      localStorage.removeItem('token');
-      next();
-    } 
-  },
-  { path: '/', redirect: '/auth' } */
-  //{ path: '/:pathMatch(.*)*', component: NotFound },
 ];
 const router = createRouter({
 

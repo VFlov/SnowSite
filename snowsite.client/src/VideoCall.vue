@@ -44,13 +44,28 @@
       <div v-else class="room-content">
         <p>В комнате: {{ roomName }}</p>
         <button @click="leaveRoom" class="btn btn-secondary">Leave Room</button>
+
+        <!-- Temporary Chat -->
+        <div class="chat-container">
+          <div class="chat-messages">
+            <div v-for="(message, index) in chatMessages" :key="index" class="chat-message">
+              <span class="chat-user">{{ message.userId }}:</span> {{ message.text }}
+            </div>
+          </div>
+          <div class="chat-input">
+            <input v-model="newMessage" @keyup.enter="sendChatMessage" placeholder="Type a message..."
+                   class="form-input">
+            <button @click="sendChatMessage" class="btn btn-primary">Send</button>
+          </div>
+        </div>
       </div>
 
       <audio ref="localAudio" muted autoplay></audio>
-      <audio v-for="peer in remotePeers" :key="peer.connectionId" :ref="`remoteAudio-${peer.connectionId}`" autoplay></audio>
+      <audio v-for="peer in remotePeers" :key="peer.connectionId" :ref="`remoteAudio-${peer.connectionId}`"
+             autoplay></audio>
     </div>
 
-    <div class="card-grid">
+    <div v-if="!inRoom" class="card-grid">
       <div class="card-container">
         <template-card :item="createRoomCard" @my-event="showCreateRoomModal = true" />
       </div>
@@ -84,6 +99,8 @@
         originalBodyBackgroundColor: '',
         originalAppBackgroundColor: '',
         isMicMuted: false,
+        chatMessages: [], // Store chat messages
+        newMessage: '', // Input for new message
         createRoomCard: { name: 'Создать комнату', participantCount: '' } // Фиктивная карточка
       };
     },
@@ -119,24 +136,41 @@
           .withAutomaticReconnect()
           .build();
 
-        this.hubConnection.on("UserJoined", this.handleUserJoined);
+        this.hubConnection.on("UserJoined", (connectionId, userId) => {
+          console.log(`User ${userId} joined with ConnectionId ${connectionId}`);
+          this.handleUserJoined(connectionId, userId);
+        });
         this.hubConnection.on("UserLeft", this.handleUserLeft);
         this.hubConnection.on("ReceiveSignal", this.handleReceiveSignal);
         this.hubConnection.on("ReceiveRoomList", (rooms) => {
-          console.log("Received room list:", rooms); // Добавляем лог
+          console.log("Received room list:", rooms);
           this.items = rooms;
         });
-        this.hubConnection.on("JoinedRoom", (roomName) => {
-          console.log(`Successfully joined room: ${roomName}`);
+        this.hubConnection.on("ReceiveChatMessage", (userId, message) => {
+          console.log(`Received real-time message - UserId: ${userId}, Message: ${message}`);
+          this.chatMessages.push({ userId, text: message });
         });
-        this.hubConnection.on("LeftRoom", (roomName) => {
-          console.log(`Successfully left room: ${roomName}`);
+        this.hubConnection.on("ReceiveChatHistory", (history) => {
+          console.log("Received chat history:", JSON.stringify(history));
+          this.chatMessages = history.map(msg => {
+            console.log(`Mapping history item - userId: ${msg.userId}, message: ${msg.message}`);
+            return { userId: msg.userId, text: msg.message };
+          });
         });
 
         this.hubConnection.start()
-          .then(() => console.log("SignalR Connected!"))
-          .then(() => this.hubConnection.invoke("GetRoomList"))
+          .then(() => {
+            console.log("SignalR Connected!");
+            this.hubConnection.invoke("GetRoomList");
+          })
           .catch(err => console.error("SignalR Error:", err));
+      },
+      async sendChatMessage() {
+        if (this.newMessage.trim() && this.inRoom) {
+          console.log(`Sending message: ${this.newMessage}`);
+          await this.hubConnection.invoke("SendChatMessage", this.roomName, this.userId, this.newMessage);
+          this.newMessage = '';
+        }
       },
       goToHome() {
         this.$router.push('/');
@@ -168,9 +202,7 @@
         }
       },
       async joinRoomFromCard(roomName) {
-        console.log("Received roomName in joinRoomFromCard:", roomName); // Лог входного параметра
         this.roomName = roomName;
-        console.log("Assigned this.roomName:", this.roomName); // Лог после присваивания
         await this.joinRoom();
       },
       async leaveRoom() {
@@ -350,11 +382,15 @@
     min-height: 100vh;
     background: #1d031f;
     padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   .video-call-container {
-    max-width: 800px;
-    margin: 40px auto;
+    max-width: 1000px;
+    width: 100%;
+    margin: 40px 0;
     padding: 25px;
     border-radius: 12px;
     background: #252525;
@@ -368,14 +404,14 @@
     margin-bottom: 20px;
     color: #70abaf;
     font-weight: 600;
-    letter-spacing: 1px;
   }
 
-  .nav-buttons {
+  .nav-buttons,
+  .media-controls {
     display: flex;
     justify-content: center;
     gap: 15px;
-    margin-bottom: 20px;
+    margin: 20px 0;
   }
 
   .screen-share-container {
@@ -389,60 +425,10 @@
     max-height: 400px;
     border-radius: 8px;
     border: 2px solid #70abaf;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 
-  .media-controls {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin: 20px 0;
-  }
-
-  .btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 1rem;
-    font-weight: 500;
-    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  .btn-default {
-    background-color: #4a4e69;
-    color: #e5dcdc;
-  }
-
-    .btn-default:hover {
-      background-color: #5a6268;
-      transform: translateY(-1px);
-      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
-    }
-
-  .btn-primary {
-    background-color: #007bff;
-    color: #fff;
-  }
-
-    .btn-primary:hover {
-      background-color: #0056b3;
-      transform: translateY(-1px);
-      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
-    }
-
-  .btn-secondary {
-    background-color: #6c757d;
-    color: #fff;
-  }
-
-    .btn-secondary:hover {
-      background-color: #5a6268;
-      transform: translateY(-1px);
-      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
-    }
-
-  .room-form, .room-content {
+  .room-form,
+  .room-content {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -452,26 +438,102 @@
 
   .form-input {
     width: 100%;
-    max-width: 300px;
     padding: 10px;
     border-radius: 6px;
     border: 1px solid #444;
     background: #333;
     color: #e5dcdc;
-    font-size: 1rem;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
 
     .form-input:focus {
       border-color: #70abaf;
-      box-shadow: 0 0 6px rgba(112, 171, 175, 0.4);
       outline: none;
     }
 
-  .room-content p {
-    margin: 0;
-    font-size: 1.1rem;
+  .chat-container {
+    width: 100%;
+    max-width: 600px;
+    margin-top: 20px;
+    background: #1e1e1e;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .chat-messages {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #2a2a2a;
+    border-radius: 6px;
+  }
+
+  .chat-message {
+    margin: 5px 0;
+    word-wrap: break-word;
     color: #e5dcdc;
+  }
+
+  .chat-user {
+    font-weight: bold;
+    color: #70abaf;
+  }
+
+  .chat-input {
+    display: flex;
+    gap: 10px;
+  }
+
+    .chat-input input {
+      flex: 1;
+    }
+
+  .btn {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    min-width: 80px;
+    /* Larger touch target */
+    transition: background-color 0.2s ease;
+  }
+
+  .btn-default {
+    background-color: #4a4e69;
+    color: #e5dcdc;
+  }
+
+    .btn-default:hover {
+      background-color: #5a6268;
+    }
+
+  .btn-primary {
+    background-color: #007bff;
+    color: #fff;
+  }
+
+    .btn-primary:hover {
+      background-color: #0056b3;
+    }
+
+  .btn-secondary {
+    background-color: #6c757d;
+    color: #fff;
+  }
+
+    .btn-secondary:hover {
+      background-color: #5a6268;
+    }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 25px;
+    padding: 30px;
+    width: 100%;
+    max-width: 1200px;
   }
 
   .modal-overlay {
@@ -480,48 +542,31 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.7);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
   }
 
   .modal-content {
-    background-color: #252525;
+    background: #252525;
     padding: 20px;
     border-radius: 12px;
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
     width: 100%;
     max-width: 320px;
     text-align: center;
     color: #e5dcdc;
-    border: 1px solid #333;
   }
 
-    .modal-content h2 {
-      font-size: 1.5rem;
-      margin-bottom: 15px;
-      color: #70abaf;
-      font-weight: 500;
-    }
-
   .modal-input {
-    width: 100%;
+    width: 95%;
     padding: 10px;
     margin-bottom: 15px;
     border: 1px solid #444;
     border-radius: 6px;
     background: #333;
     color: #e5dcdc;
-    font-size: 1rem;
-    transition: border-color 0.2s ease;
   }
-
-    .modal-input:focus {
-      border-color: #70abaf;
-      outline: none;
-    }
 
   .modal-buttons {
     display: flex;
@@ -529,10 +574,56 @@
     gap: 10px;
   }
 
-  .card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 25px;
-    padding: 30px;
+  @media (max-width: 768px) {
+    h1 {
+      font-size: 1.3rem;
+    }
+
+    .screen-video {
+      max-height: 200px;
+    }
+
+    .chat-messages {
+      max-height: 30vh;
+    }
+
+    .btn {
+      padding: 8px 12px;
+      font-size: 0.8rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .video-call-wrapper {
+      padding: 2px;
+    }
+
+    .video-call-container {
+      margin: 5px 0;
+      padding: 8px;
+    }
+
+    h1 {
+      font-size: 1.1rem;
+    }
+
+    .chat-input {
+      flex-direction: column;
+    }
+
+      .chat-input input {
+        width: 100%;
+      }
+
+    .btn {
+      width: 100%;
+      padding: 10px;
+      font-size: 0.9rem;
+    }
+
+    .card-grid {
+      grid-template-columns: 1fr;
+      /* Single column for very small screens */
+    }
   }
 </style>
