@@ -52,9 +52,9 @@ jobs:
     sshpass -p "$SERVER_PASSWORD" scp -r ./SnowSite.Server/publish/* $SERVER_USER@$SERVER_IP:/var/www/snowsite/prod/
     
     sshpass -p "$SERVER_PASSWORD" ssh $SERVER_USER@$SERVER_IP << 'EOF'
-pkill -f "dotnet.*SnowSite.Server.dll" || true
-nohup dotnet /var/www/snowsite/prod/SnowSite.Server.dll \
-  --urls "http://localhost:5000" \
-  --environment Production > prod.log 2>&1 &
-sudo systemctl restart nginx
-EOF
+    pkill -f "dotnet.*SnowSite.Server.dll" || true
+    nohup dotnet /var/www/snowsite/prod/SnowSite.Server.dll \
+      --urls "http://localhost:5000" \
+      --environment Production > prod.log 2>&1 &
+    sudo systemctl restart nginx
+    EOF
