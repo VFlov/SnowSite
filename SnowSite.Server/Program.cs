@@ -5,10 +5,26 @@ using SnowSite.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.ConfigureKestrel(options =>
+{
+    // HTTP на порту 80
+    options.ListenAnyIP(80);
 
+    // HTTPS на порту 443 с сертификатом
+    options.ListenAnyIP(443, listenOptions =>
+    {
+        listenOptions.UseHttps("/etc/letsencrypt/live/vflov.ru/fullchain.pem", "/etc/letsencrypt/live/vflov.ru/privkey.pem");
+    });
+});
+builder.Services.AddLogging(logging =>
+{
+    logging.AddConsole();
+    logging.AddFile("/var/www/snowsite/prod/prod.log");
+});
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -71,6 +87,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
 }
 
 app.MapControllers();

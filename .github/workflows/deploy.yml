@@ -40,9 +40,9 @@ jobs:
 
       - name: Deploy to production server
         env:
-          SERVER_IP: ${{ secrets.SSH_HOST }}
-          SERVER_USER: ${{ secrets.SSH_USERNAME }}
-          SERVER_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
         run: |      
           sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /var/www/snowsite/prod && mkdir -p /var/www/snowsite/prod/client"
         
@@ -50,8 +50,7 @@ jobs:
           sshpass -p "$SERVER_PASSWORD" scp -r ./SnowSite.Server/publish/* $SERVER_USER@$SERVER_IP:/var/www/snowsite/prod/
         
           sshpass -p "$SERVER_PASSWORD" ssh $SERVER_USER@$SERVER_IP << 'EOF'
-          systemctl stop snowsite.service || true
-          systemctl start snowsite.service
-          systemctl restart nginx
+            systemctl stop snowsite.service || true
+            systemctl start snowsite.service
           EOF
 
