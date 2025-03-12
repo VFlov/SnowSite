@@ -5,28 +5,30 @@ using SnowSite.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.FileProviders;
+using Serilog; // Добавьте using для Serilog
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Настраиваем Serilog
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .WriteTo.Console()
+    .WriteTo.File("/var/www/snowsite/prod/prod.log", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+builder.Host.UseSerilog(); // Подключаем Serilog к хосту
+
+// Настраиваем Kestrel
 builder.WebHost.ConfigureKestrel(options =>
 {
-    // HTTP на порту 80
-    options.ListenAnyIP(80);
-
-    // HTTPS на порту 443 с PFX-сертификатом
+    options.ListenAnyIP(80); // HTTP
     options.ListenAnyIP(443, listenOptions =>
     {
         listenOptions.UseHttps("/etc/letsencrypt/live/vflov.ru/vflov.ru.pfx", "Fefelov228");
     });
 });
-/*
-builder.Services.AddLogging(logging =>
-{
-    logging.AddConsole();
-    logging.AddFile("/var/www/snowsite/prod/prod.log");
-});
-*/
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -59,7 +61,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
-
 builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -70,7 +71,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", builder =>
     {
-        builder.WithOrigins("https://45.130.214.139:65311", "https://45.130.214.139:5020", "https://45.130.214.139:443", "https://45.130.214.139:80", "https://45.130.214.139:5000", "http://45.130.214.139:5000")
+        builder.WithOrigins("https://vflov.ru", "http://vflov.ru")
                .AllowAnyMethod()
                .AllowAnyHeader()
                .AllowCredentials();
@@ -81,24 +82,36 @@ var app = builder.Build();
 
 app.UseCors("AllowAll");
 app.UseRouting();
-app.UseStaticFiles();
+
+// Статические файлы фронтенда
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider("/var/www/snowsite/prod/client"),
+    RequestPath = ""
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseWebSockets();
 
 app.MapHub<ChatHub>("/chatHub");
 app.MapHub<CallHub>("/callHub");
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseHttpsRedirection();
 
+app.UseHttpsRedirection();
 app.MapControllers();
 app.MapFallbackToFile("/index.html");
 
-app.Run();
-
-
-
+try
+{
+    app.Run();
+}
+finally
+{
+    Log.CloseAndFlush(); // Закрываем логи при завершении приложения
+}
