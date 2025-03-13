@@ -22,11 +22,7 @@ builder.Host.UseSerilog(); // Подключаем Serilog к хосту
 // Настраиваем Kestrel
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.ListenAnyIP(80); // HTTP
-    options.ListenAnyIP(443, listenOptions =>
-    {
-        listenOptions.UseHttps("/etc/letsencrypt/live/vflov.ru/vflov.ru.pfx", "Fefelov228");
-    });
+    options.ListenAnyIP(5000); // Только HTTP, порт 5000
 });
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
