@@ -1,6 +1,9 @@
 <template>
   <div class="messenger">
-    <aside class="sidebar">
+    <button v-if="isMobile" @click="toggleSidebar" class="sidebar-toggle">
+      {{ sidebarVisible ? 'Скрыть' : 'Чаты' }}
+    </button>
+    <aside class="sidebar" :class="{ visible: sidebarVisible || !isMobile }">
       <header class="sidebar-header">
         <h3>Чаты</h3>
         <button @click="logout" class="logout-btn">Выйти</button>
@@ -16,9 +19,14 @@
             :class="{ active: selectedDialog?.id === dialog.id }">
           <div class="avatar" :style="{ backgroundColor: getAvatarColor(dialog) }"></div>
           <div class="dialog-info">
-            <span class="username">{{ getDialogUsername(dialog) }}</span>
-            <span class="last-message">{{ dialog.lastMessage || 'Нет сообщений' }}</span>
-            <span v-if="getUnreadCount(dialog)" class="unread">{{ getUnreadCount(dialog) }}</span>
+            <div class="left-column">
+              <span class="username">{{ getDialogUsername(dialog) }}</span>
+              <span class="last-message">{{ dialog.lastMessage || 'Нет сообщений' }}</span>
+            </div>
+            <div class="right-column">
+              <span class="time" v-if="dialog.lastMessage">{{ formatTime(messages.find(m => m.dialogId === dialog.id && m.text === dialog.lastMessage)?.time) }}</span>
+              <span v-if="getUnreadCount(dialog)" class="unread">{{ getUnreadCount(dialog) }}</span>
+            </div>
           </div>
         </li>
       </ul>
@@ -70,20 +78,27 @@
         connection: null,
         file: null,
         isSending: false,
-        selectedImage: null
+        selectedImage: null,
+        sidebarVisible: false // Для управления видимостью сайдбара
       };
     },
+    computed: {
+      isMobile() {
+        return window.innerWidth <= 768;
+      }
+    },
     methods: {
+      toggleSidebar() {
+        this.sidebarVisible = !this.sidebarVisible;
+      },
       async fetchDialogs() {
         const response = await this.fetchWithAuth(getApiUrl('/api/chat/dialogs'));
         if (response.ok) this.dialogs = await response.json();
         else this.$router.push('/auth');
       },
       async selectDialog(dialog) {
-        console.log(this.selectedDialog?.id);
         this.searchedUsers = [];
         this.selectedDialog = dialog;
-        console.log(this.selectedDialog?.id);
         const response = await this.fetchWithAuth(getApiUrl(`/api/chat/messages/${dialog.id}`));
         if (response.ok) {
           this.messages = await response.json();
@@ -164,7 +179,6 @@
 
         this.connection.on('ReceiveMessage', (message) => {
           console.log('Получено сообщение:', message);
-          // Обновляем список диалогов независимо от выбранного диалога
           const dialogIndex = this.dialogs.findIndex(d => d.id === message.dialogId);
           if (dialogIndex !== -1) {
             this.dialogs[dialogIndex].lastMessage = message.text;
@@ -174,18 +188,9 @@
                 : this.dialogs[dialogIndex].user2UnreadCount++;
             }
           }
-
-          // Добавляем сообщение в текущий диалог, если он открыт
-          console.log('===========');
-          console.log(message.dialogId);
-          console.log(this.selectedDialog?.id);
           if (message.dialogId === this.selectedDialog?.id) {
-            //const index = this.messages.findIndex(m => m.tempId === message.tempId);
-            //console.log('index: ', index)
-            //if (index === -1) {
-              this.messages.push(message);
-              this.$nextTick(() => this.scrollToBottom());
-            //}
+            this.messages.push(message);
+            this.$nextTick(() => this.scrollToBottom());
           }
         });
 
@@ -262,6 +267,7 @@
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     overflow: hidden;
+    position: relative;
   }
 
   .sidebar {
@@ -270,6 +276,10 @@
     display: flex;
     flex-direction: column;
   }
+
+    .sidebar.visible {
+      display: flex;
+    }
 
   .chat {
     flex: 1;
@@ -374,12 +384,22 @@
 
   .dialog-info {
     flex: 1;
-    overflow: hidden;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .left-column {
     display: flex;
     flex-direction: column;
-    /* Вертикальное расположение */
+    overflow: hidden;
+  }
+
+  .right-column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
     gap: 4px;
-    /* Отступ между username и last-message */
   }
 
   .username {
@@ -396,15 +416,18 @@
     text-overflow: ellipsis;
   }
 
+  .time {
+    font-size: 0.75rem;
+    color: #999;
+  }
+
   .unread {
     background: #007bff;
     color: #fff;
     font-size: 0.75rem;
     padding: 2px 6px;
     border-radius: 10px;
-    margin-left: 8px;
   }
-
 
   .chat-header {
     padding: 16px;
@@ -533,23 +556,47 @@
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   }
+
+  .sidebar-toggle {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 20;
+    padding: 6px 12px;
+    background: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
   /* Медиа-запросы для мобильных устройств */
   @media (max-width: 768px) {
     .messenger {
-      flex-direction: column; /* Сайдбар и чат вертикально */
-      border-radius: 0; /* Убираем скругления для полного экрана */
+      flex-direction: column;
+      border-radius: 0;
     }
 
     .sidebar {
-      width: 100%; /* Полная ширина на мобильных */
-      height: auto; /* Высота зависит от контента */
-      max-height: 40vh; /* Ограничим высоту сайдбара */
+      display: none; /* Скрыт по умолчанию на мобильных */
+      width: 100%;
+      height: auto;
+      max-height: 40vh;
       overflow-y: auto;
     }
 
+      .sidebar.visible {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10;
+      }
+
     .chat {
       width: 100%;
-      height: calc(100vh - 40vh); /* Оставшееся место для чата */
+      height: calc(100vh - 40vh);
     }
 
     .sidebar-header {
@@ -557,7 +604,7 @@
     }
 
       .sidebar-header h3 {
-        font-size: 1rem; /* Уменьшаем заголовок */
+        font-size: 1rem;
       }
 
     .logout-btn {
@@ -602,17 +649,17 @@
     }
 
     .message-content {
-      max-width: 85%; /* Увеличиваем ширину сообщений */
+      max-width: 85%;
       padding: 8px 12px;
     }
 
     .attachment {
-      max-width: 140px; /* Уменьшаем размер вложений */
+      max-width: 140px;
     }
 
     .chat-footer {
       padding: 8px;
-      flex-wrap: wrap; /* Перенос кнопок при нехватке места */
+      flex-wrap: wrap;
     }
 
       .chat-footer input {
@@ -635,7 +682,6 @@
     }
   }
 
-  /* Дополнительные улучшения для очень маленьких экранов */
   @media (max-width: 480px) {
     .sidebar {
       max-height: 30vh;
