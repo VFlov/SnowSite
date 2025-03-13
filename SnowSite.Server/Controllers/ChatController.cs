@@ -48,6 +48,7 @@ namespace SnowSite.Server.Controllers
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Error in SendMessage: {ex.Message}");
                 return BadRequest(new { Message = ex.Message });
             }
         }

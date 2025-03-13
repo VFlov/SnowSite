@@ -12,7 +12,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 const ports = {
   development: {
     frontend: 65311,
-    api: 5020
+    api: 5000
   },
   production: {
     frontend: 80,
@@ -49,6 +49,7 @@ if (!isProduction) {
 }
 
 export default defineConfig({
+  base: '/',
   plugins: [vuePlugin()],
   resolve: {
     alias: {
@@ -58,7 +59,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: `http://0.0.0.0:${currentPorts.api}`,
+        target: `https://localhost:${currentPorts.api}`,
         changeOrigin: true,
         secure: false,
         // Убираем префикс /api при проксировании если нужно

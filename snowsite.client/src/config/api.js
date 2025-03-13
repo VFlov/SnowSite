@@ -2,7 +2,7 @@ const ENV = process.env.NODE_ENV || 'development';
 
 const config = {
   development: {
-    apiBaseUrl: 'http://vflov.ru:5020', // Для dev используем порт 5020
+    apiBaseUrl: 'https://localhost:5000', // Для dev используем порт 5020
     frontendPort: 65311
   },
   production: {

@@ -107,7 +107,7 @@ public class ChatService : IChatService
             DialogId = dialogId,
             SenderId = userId,
             Text = text,
-            Time = DateTime.Now,
+            Time = DateTime.UtcNow,
             AttachmentUrl = attachment != null ? await SaveAttachment(attachment) : null
         };
 

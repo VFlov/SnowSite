@@ -161,11 +161,8 @@
           .build();
 
         this.connection.on('ReceiveMessage', (message) => {
-          if (message.dialogId === this.selectedDialog?.id) {
-            const index = this.messages.findIndex(m => m.tempId === message.tempId);
-            if (index === -1) this.messages.push(message);
-            this.$nextTick(() => this.scrollToBottom());
-          }
+          console.log('Получено сообщение:', message);
+          // Обновляем список диалогов независимо от выбранного диалога
           const dialogIndex = this.dialogs.findIndex(d => d.id === message.dialogId);
           if (dialogIndex !== -1) {
             this.dialogs[dialogIndex].lastMessage = message.text;
@@ -173,6 +170,17 @@
               this.dialogs[dialogIndex].user1Id === this.currentUserId
                 ? this.dialogs[dialogIndex].user1UnreadCount++
                 : this.dialogs[dialogIndex].user2UnreadCount++;
+            }
+          }
+
+          // Добавляем сообщение в текущий диалог, если он открыт
+          console.log(message.dialogId);
+          console.log(selectedDialog?.id);
+          if (message.dialogId === this.selectedDialog?.id) {
+            const index = this.messages.findIndex(m => m.tempId === message.tempId);
+            if (index === -1) {
+              this.messages.push(message);
+              this.$nextTick(() => this.scrollToBottom());
             }
           }
         });
@@ -255,6 +263,12 @@
   .sidebar {
     width: 300px;
     background: #f5f7fa;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chat {
+    flex: 1;
     display: flex;
     flex-direction: column;
   }
@@ -387,11 +401,6 @@
     margin-left: 8px;
   }
 
-  .chat {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-  }
 
   .chat-header {
     padding: 16px;
@@ -519,5 +528,138 @@
     max-height: 90%;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  /* Медиа-запросы для мобильных устройств */
+  @media (max-width: 768px) {
+    .messenger {
+      flex-direction: column; /* Сайдбар и чат вертикально */
+      border-radius: 0; /* Убираем скругления для полного экрана */
+    }
+
+    .sidebar {
+      width: 100%; /* Полная ширина на мобильных */
+      height: auto; /* Высота зависит от контента */
+      max-height: 40vh; /* Ограничим высоту сайдбара */
+      overflow-y: auto;
+    }
+
+    .chat {
+      width: 100%;
+      height: calc(100vh - 40vh); /* Оставшееся место для чата */
+    }
+
+    .sidebar-header {
+      padding: 10px;
+    }
+
+      .sidebar-header h3 {
+        font-size: 1rem; /* Уменьшаем заголовок */
+      }
+
+    .logout-btn {
+      padding: 4px 8px;
+      font-size: 0.8rem;
+    }
+
+    .search-input {
+      margin: 8px;
+      padding: 6px 10px;
+      font-size: 0.85rem;
+    }
+
+    .dialogs li {
+      padding: 8px 12px;
+    }
+
+    .avatar {
+      width: 30px;
+      height: 30px;
+      margin-right: 8px;
+    }
+
+    .username {
+      font-size: 0.9rem;
+    }
+
+    .last-message {
+      font-size: 0.75rem;
+    }
+
+    .chat-header {
+      padding: 10px;
+    }
+
+      .chat-header span {
+        font-size: 1rem;
+      }
+
+    .messages {
+      padding: 10px;
+    }
+
+    .message-content {
+      max-width: 85%; /* Увеличиваем ширину сообщений */
+      padding: 8px 12px;
+    }
+
+    .attachment {
+      max-width: 140px; /* Уменьшаем размер вложений */
+    }
+
+    .chat-footer {
+      padding: 8px;
+      flex-wrap: wrap; /* Перенос кнопок при нехватке места */
+    }
+
+      .chat-footer input {
+        padding: 6px 10px;
+        font-size: 0.85rem;
+      }
+
+      .chat-footer button {
+        padding: 6px 10px;
+        font-size: 0.9rem;
+      }
+
+    .image-modal {
+      padding: 10px;
+    }
+
+    .full-image {
+      max-width: 95%;
+      max-height: 95%;
+    }
+  }
+
+  /* Дополнительные улучшения для очень маленьких экранов */
+  @media (max-width: 480px) {
+    .sidebar {
+      max-height: 30vh;
+    }
+
+    .chat {
+      height: calc(100vh - 30vh);
+    }
+
+    .avatar {
+      width: 24px;
+      height: 24px;
+    }
+
+    .username {
+      font-size: 0.85rem;
+    }
+
+    .last-message {
+      font-size: 0.7rem;
+    }
+
+    .message-content {
+      padding: 6px 10px;
+    }
+
+    .attachment {
+      max-width: 120px;
+    }
   }
 </style>

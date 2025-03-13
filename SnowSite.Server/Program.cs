@@ -10,6 +10,7 @@ using Serilog; // Добавьте using для Serilog
 
 var builder = WebApplication.CreateBuilder(args);
 
+/*
 // Настраиваем Serilog
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -18,13 +19,14 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 builder.Host.UseSerilog(); // Подключаем Serilog к хосту
-
+*/
 // Настраиваем Kestrel
+/*
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.ListenAnyIP(5000); // Только HTTP, порт 5000
 });
-
+*/
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -66,7 +68,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", builder =>
     {
-        builder.WithOrigins("https://vflov.ru", "http://vflov.ru")
+        builder.WithOrigins("https://vflov.ru", "http://vflov.ru", "https://localhost:5000", "https://localhost:65311")
                .AllowAnyMethod()
                .AllowAnyHeader()
                .AllowCredentials();
@@ -78,12 +80,14 @@ var app = builder.Build();
 app.UseCors("AllowAll");
 app.UseRouting();
 
-// Статические файлы фронтенда
-app.UseStaticFiles(new StaticFileOptions
+if (!app.Environment.IsDevelopment())
 {
-    FileProvider = new PhysicalFileProvider("/var/www/snowsite/prod/client"),
-    RequestPath = ""
-});
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider("/var/www/snowsite/prod/client"),
+        RequestPath = ""
+    });
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -100,8 +104,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.MapControllers();
-app.MapFallbackToFile("/index.html");
-
+//app.MapFallbackToFile("/index.html");
 try
 {
     app.Run();
