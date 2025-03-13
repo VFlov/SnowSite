@@ -183,7 +183,7 @@
           }
 
           // Добавляем сообщение в текущий диалог, если он открыт
-          console.log(===========);
+          console.log('===========');
           console.log(message.dialogId);
           console.log(this.selectedDialog?.id);
           if (message.dialogId === this.selectedDialog?.id) {
