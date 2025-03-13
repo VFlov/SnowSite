@@ -80,8 +80,10 @@
         else this.$router.push('/auth');
       },
       async selectDialog(dialog) {
+        console.log(this.selectedDialog?.id);
         this.searchedUsers = [];
         this.selectedDialog = dialog;
+        console.log(this.selectedDialog?.id);
         const response = await this.fetchWithAuth(getApiUrl(`/api/chat/messages/${dialog.id}`));
         if (response.ok) {
           this.messages = await response.json();
@@ -175,7 +177,7 @@
 
           // Добавляем сообщение в текущий диалог, если он открыт
           console.log(message.dialogId);
-          console.log(selectedDialog?.id);
+          console.log(this.selectedDialog?.id);
           if (message.dialogId === this.selectedDialog?.id) {
             const index = this.messages.findIndex(m => m.tempId === message.tempId);
             if (index === -1) {
