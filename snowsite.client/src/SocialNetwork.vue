@@ -1,5 +1,6 @@
 <template>
   <div class="messenger">
+    <button v-if="isMobile" @click="toggleSidebar" class="sidebar-toggle">{{ sidebarVisible ? 'Скрыть' : 'Чаты' }}</button>
     <aside class="sidebar">
       <header class="sidebar-header">
         <h3>Чаты</h3>
@@ -61,6 +62,7 @@
     data() {
       return {
         dialogs: [],
+        sidebarVisible: false,
         selectedDialog: null,
         messages: [],
         newMessage: '',
@@ -72,6 +74,11 @@
         isSending: false,
         selectedImage: null
       };
+    },
+    computed: {
+      isMobile() {
+        return window.innerWidth <= 768;
+      }
     },
     methods: {
       async fetchDialogs() {
@@ -176,10 +183,12 @@
           }
 
           // Добавляем сообщение в текущий диалог, если он открыт
+          console.log(===========);
           console.log(message.dialogId);
           console.log(this.selectedDialog?.id);
           if (message.dialogId === this.selectedDialog?.id) {
             const index = this.messages.findIndex(m => m.tempId === message.tempId);
+            console.log('index: ', index)
             if (index === -1) {
               this.messages.push(message);
               this.$nextTick(() => this.scrollToBottom());
@@ -226,8 +235,12 @@
       },
       closeImage() {
         this.selectedImage = null;
+      },
+      toggleSidebar() {
+        this.sidebarVisible = !this.sidebarVisible;
       }
     },
+
     created() {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -247,6 +260,7 @@
     beforeUnmount() {
       if (this.connection) this.connection.stop();
     }
+
   };
 </script>
 
@@ -263,10 +277,7 @@
   }
 
   .sidebar {
-    width: 300px;
-    background: #f5f7fa;
-    display: flex;
-    flex-direction: column;
+    display: none; /* Скрыт по умолчанию на мобильных */
   }
 
   .chat {
@@ -533,6 +544,21 @@
   }
   /* Медиа-запросы для мобильных устройств */
   @media (max-width: 768px) {
+    .sidebar.visible {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+    }
+
+    .sidebar-toggle {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 20;
+    }
     .messenger {
       flex-direction: column; /* Сайдбар и чат вертикально */
       border-radius: 0; /* Убираем скругления для полного экрана */
