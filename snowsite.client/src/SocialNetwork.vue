@@ -362,7 +362,7 @@
     .dialogs li {
       display: flex;
       align-items: center;
-      padding: 12px 16px;
+      padding: 6px;
       cursor: pointer;
       transition: background 0.2s;
     }
@@ -376,9 +376,9 @@
       }
 
   .avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    border-radius: 30%;
     margin-right: 12px;
   }
 
@@ -623,8 +623,8 @@
     }
 
     .avatar {
-      width: 30px;
-      height: 30px;
+      width: 36px;
+      height: 36px;
       margin-right: 8px;
     }
 
