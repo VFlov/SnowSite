@@ -138,8 +138,10 @@ public class ChatService : IChatService
         var dialog = await _context.Dialogs.FindAsync(message.DialogId);
         if (dialog != null)
         {
-            await _hubContext.Clients.Group(dialog.User1Id.ToString()).SendAsync("ReceiveMessage", message);
-            await _hubContext.Clients.Group(dialog.User2Id.ToString()).SendAsync("ReceiveMessage", message);
+            if (message.SenderId == dialog.User1Id)
+                await _hubContext.Clients.Group(dialog.User2Id.ToString()).SendAsync("ReceiveMessage", message);
+            else if (message.SenderId == dialog.User2Id)
+                await _hubContext.Clients.Group(dialog.User1Id.ToString()).SendAsync("ReceiveMessage", message);
         }
     }
     private async Task<string> SaveAttachment(IFormFile file)

@@ -180,12 +180,12 @@
           console.log(message.dialogId);
           console.log(this.selectedDialog?.id);
           if (message.dialogId === this.selectedDialog?.id) {
-            const index = this.messages.findIndex(m => m.tempId === message.tempId);
-            console.log('index: ', index)
-            if (index === -1) {
+            //const index = this.messages.findIndex(m => m.tempId === message.tempId);
+            //console.log('index: ', index)
+            //if (index === -1) {
               this.messages.push(message);
               this.$nextTick(() => this.scrollToBottom());
-            }
+            //}
           }
         });
 
