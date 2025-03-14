@@ -37,13 +37,18 @@ jobs:
       - name: Build and publish backend
         working-directory: ./SnowSite.Server
         run: dotnet publish -c Release -o ./publish
-
+        
+      - name: Build and publish backend (Piranha CMS)
+        working-directory: ./PiranhaValheim
+        run: dotnet publish -c Release -o ./publish
+        
       - name: Deploy to production server
         env:
           SERVER_IP: ${{ secrets.SSH_HOST }}
           SERVER_USER: ${{ secrets.SSH_USERNAME }}
           SERVER_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |      
+          sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /var/www/piranha-cms/prod"
           # Создание директорий
           sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /var/www/snowsite/prod && mkdir -p /var/www/snowsite/prod/client"
           
@@ -53,9 +58,13 @@ jobs:
           # Копирование бэкенда
           sshpass -p "$SERVER_PASSWORD" scp -r ./SnowSite.Server/publish/* $SERVER_USER@$SERVER_IP:/var/www/snowsite/prod/
           
+          sshpass -p "$SERVER_PASSWORD" scp -r ./PiranhaCms/publish/* $SERVER_USER@$SERVER_IP:/var/www/piranha-cms/prod/
+          
           # Перезапуск служб
           sshpass -p "$SERVER_PASSWORD" ssh $SERVER_USER@$SERVER_IP << 'EOF'
             systemctl stop snowsite.service || true
             systemctl start snowsite.service
+            systemctl stop piranha-cms.service || true
+            systemctl start piranha-cms.service
             systemctl restart nginx # Перезапуск Nginx после деплоя
           EOF

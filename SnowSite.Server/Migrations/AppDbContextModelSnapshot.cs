@@ -53,7 +53,7 @@ namespace SnowSite.Server.Migrations
 
                     b.HasIndex("User2Id");
 
-                    b.ToTable("Dialogs");
+                    b.ToTable("Dialogs", (string)null);
                 });
 
             modelBuilder.Entity("SnowSite.Server.Models.Message", b =>
@@ -87,7 +87,7 @@ namespace SnowSite.Server.Migrations
 
                     b.HasIndex("SenderId");
 
-                    b.ToTable("Messages");
+                    b.ToTable("Messages", (string)null);
                 });
 
             modelBuilder.Entity("SnowSite.Server.Models.User", b =>
@@ -109,7 +109,7 @@ namespace SnowSite.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("SnowSite.Server.Models.Dialog", b =>
