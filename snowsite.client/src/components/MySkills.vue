@@ -8,20 +8,23 @@
          :style="{
         width: circle.size + 'px',
         height: circle.size + 'px',
-        backgroundColor: circle.color
-      }"
-         ref="circleElements">
+        backgroundColor: circle.color,
+        position: 'absolute',
+        left: circle.position.x + 'px',
+        top: circle.position.y + 'px',
+        animation: getAnimationStyle(index)
+      }">
       {{ circle.text }}
     </div>
 
-    <!-- SVG для линий -->
-    <svg class="connections">
+    <!-- Линии между кружками -->
+    <svg class="connections" width="100%" height="100%">
       <line v-for="(connection, index) in getConnections"
-            :key="'line' + index"
-            :x1="connection.x1"
-            :y1="connection.y1"
-            :x2="connection.x2"
-            :y2="connection.y2"
+            :key="'line-' + index"
+            :x1="connection.from.x"
+            :y1="connection.from.y"
+            :x2="connection.to.x"
+            :y2="connection.to.y"
             stroke="black"
             stroke-width="2" />
     </svg>
@@ -38,69 +41,97 @@
             text: 'Большой',
             color: '#ff6b6b',
             size: 200,
-            connections: [1] // Связь со средним кружком (индекс 1)
+            position: { x: 500, y: 300 },
+            connectedTo: [1],
+            isOrbiting: false,
+            orbitRadius: 0,
+            orbitSpeed: 0
           },
           {
             text: 'Средний',
             color: '#4ecdc4',
             size: 150,
-            connections: [0, 2] // Связь с большим (0) и маленьким (2)
+            position: { x: 0, y: 0 }, // Начальная позиция будет вычисляться
+            connectedTo: [0, 2],
+            isOrbiting: true,
+            orbitRadius: 300,
+            orbitSpeed: 8,
+            parentIndex: 0
           },
           {
             text: 'Маленький',
             color: '#45b7d1',
             size: 100,
-            connections: [1] // Связь со средним (1)
+            position: { x: 0, y: 0 }, // Начальная позиция будет вычисляться
+            connectedTo: [1],
+            isOrbiting: true,
+            orbitRadius: 200,
+            orbitSpeed: 5,
+            parentIndex: 1
           }
-        ]
+        ],
+        animationFrame: 0
       }
     },
     computed: {
       getConnections() {
         const connections = [];
-        const circleElements = this.$refs.circleElements;
-
-        if (!circleElements) return connections;
-
-        this.circles.forEach((circle, index) => {
-          if (circle.connections) {
-            const circleRect = circleElements[index].getBoundingClientRect();
-            const circleCenterX = circleRect.left + circleRect.width / 2;
-            const circleCenterY = circleRect.top + circleRect.height / 2;
-
-            circle.connections.forEach(targetIndex => {
-              const targetRect = circleElements[targetIndex].getBoundingClientRect();
-              const targetCenterX = targetRect.left + targetRect.width / 2;
-              const targetCenterY = targetRect.top + targetRect.height / 2;
-
+        this.circles.forEach((circle, fromIndex) => {
+          if (circle.connectedTo) {
+            circle.connectedTo.forEach(toIndex => {
+              const fromCenter = {
+                x: circle.position.x + circle.size / 2,
+                y: circle.position.y + circle.size / 2
+              };
+              const toCenter = {
+                x: this.circles[toIndex].position.x + this.circles[toIndex].size / 2,
+                y: this.circles[toIndex].position.y + this.circles[toIndex].size / 2
+              };
               connections.push({
-                x1: circleCenterX - circleElements[0].parentElement.getBoundingClientRect().left,
-                y1: circleCenterY - circleElements[0].parentElement.getBoundingClientRect().top,
-                x2: targetCenterX - circleElements[0].parentElement.getBoundingClientRect().left,
-                y2: targetCenterY - circleElements[0].parentElement.getBoundingClientRect().top
+                from: fromCenter,
+                to: toCenter
               });
             });
           }
         });
-
         return connections;
       }
     },
+    methods: {
+      getAnimationStyle(index) {
+        const circle = this.circles[index];
+        if (!circle.isOrbiting) return '';
+        return `orbit-${index} ${circle.orbitSpeed}s infinite linear`;
+      },
+      updatePositions() {
+        this.circles.forEach((circle, index) => {
+          if (circle.isOrbiting && circle.parentIndex !== undefined) {
+            const parent = this.circles[circle.parentIndex];
+            const angle = (Date.now() / 1000) * (2 * Math.PI / circle.orbitSpeed);
+            circle.position.x = parent.position.x +
+              circle.orbitRadius * Math.cos(angle) - circle.size / 2;
+            circle.position.y = parent.position.y +
+              circle.orbitRadius * Math.sin(angle) - circle.size / 2;
+          }
+        });
+        this.animationFrame = requestAnimationFrame(this.updatePositions);
+      }
+    },
     mounted() {
-      // Обновление позиций после полной загрузки
-      this.$forceUpdate();
+      this.updatePositions();
+    },
+    beforeDestroy() {
+      cancelAnimationFrame(this.animationFrame);
     }
   }
 </script>
 
 <style scoped>
   .circle-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    gap: 20px;
     position: relative;
+    height: 100vh;
+    overflow: hidden;
+    background: #f0f0f0;
   }
 
   .circle {
@@ -112,17 +143,33 @@
     font-family: Arial, sans-serif;
     font-size: 20px;
     text-align: center;
-    position: relative;
   }
 
   .connections {
     position: absolute;
-    color: black;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
     pointer-events: none;
-    z-index: -1;
+  }
+
+  /* Добавляем keyframes для каждого орбитального кружка */
+  @keyframes orbit-1 {
+    from {
+      transform: rotate(0deg) translateX(300px) rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg) translateX(300px) rotate(-360deg);
+    }
+  }
+
+  @keyframes orbit-2 {
+    from {
+      transform: rotate(0deg) translateX(200px) rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg) translateX(200px) rotate(-360deg);
+    }
   }
 </style>
