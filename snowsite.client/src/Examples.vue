@@ -1,11 +1,13 @@
 <template>
   <div>
-    <h1>Example</h1>
+    <h1>Градиент</h1>
     <button @click="redirectToPixelFade">Перейти на HTML страницу</button>
-    <h1>Example</h1>
+    <h1>Пузырьки</h1>
     <button @click="redirectToBubbles">Перейти на HTML страницу</button>
-    <h1>Example</h1>
+    <h1>Карточки</h1>
     <button @click="redirectToCard">Перейти на HTML страницу</button>
+    <h1>Космос</h1>
+    <button @click="redirectToSpace">Перейти на HTML страницу</button>
   </div>
 </template>
   
@@ -20,7 +22,10 @@ export default {
     },
     redirectToCard() {
       window.location.href = './src/html/Card.html'; // Замените на ваш путь
-    }
+    },
+    redirectToSpace() {
+  window.location.href = './src/html/Space.html'; // Замените на ваш путь
+}
   }
 }
 </script>
