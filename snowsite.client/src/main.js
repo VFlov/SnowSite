@@ -11,6 +11,7 @@ import VideoCall from './VideoCall.vue';
 import Valheim from './Valheim.vue';
 import AuthPage from './AuthPage.vue'
 import AppLayout from './components/AppLayout.vue';
+import MySkills from './components/MySkills.vue';
 
 
 const routes = [
@@ -21,6 +22,7 @@ const routes = [
   { path: '/examples', name: 'examples', component: Examples },
   { path: '/videocall', name: 'videocall', component: VideoCall },
   { path: '/valheim', name: 'valheim', component: Valheim },
+  { path: '/myskills', name: 'skills', component: MySkills },
   { path: '/auth', component: AuthPage },
   {
     path: '/',

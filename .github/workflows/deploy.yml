@@ -58,7 +58,7 @@ jobs:
           # Копирование бэкенда
           sshpass -p "$SERVER_PASSWORD" scp -r ./SnowSite.Server/publish/* $SERVER_USER@$SERVER_IP:/var/www/snowsite/prod/
           
-          sshpass -p "$SERVER_PASSWORD" scp -r ./PiranhaCms/publish/* $SERVER_USER@$SERVER_IP:/var/www/piranha-cms/prod/
+          sshpass -p "$SERVER_PASSWORD" scp -r ./PiranhaValheim/publish/* $SERVER_USER@$SERVER_IP:/var/www/piranha-cms/prod/
           
           # Перезапуск служб
           sshpass -p "$SERVER_PASSWORD" ssh $SERVER_USER@$SERVER_IP << 'EOF'
