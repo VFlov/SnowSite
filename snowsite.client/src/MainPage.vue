@@ -1,67 +1,80 @@
+<!-- App.vue -->
 <template>
-  <div class="container">
-    <!-- Hero Section -->
-    <header class="hero">
-      <img src="/src/assets/logo.svg" alt="Профиль" class="profile-img" />
-      <h1>{{ name }}</h1>
-      <p>{{ title }}</p>
-    </header>
+  <div class="app-container">
+    <!-- Main Content -->
+    <div class="container">
+      <!-- Hero Section -->
+      <header class="hero">
+        <img src="/src/assets/logo.svg" alt="Профиль" class="profile-img" />
+        <h1>{{ name }}</h1>
+        <p>{{ title }}</p>
+      </header>
 
-    <!-- Navigation -->
-    <nav class="navbar">
-      <ul>
-        <li v-for="item in navItems" :key="item.href">
-          <a :href="item.href">{{ item.label }}</a>
-        </li>
-      </ul>
-    </nav>
+      <!-- Navigation -->
+      <nav class="navbar">
+        <ul>
+          <li v-for="item in navItems" :key="item.href">
+            <a :href="item.href">{{ item.label }}</a>
+          </li>
+        </ul>
+      </nav>
 
-    <!-- About Section -->
-    <section class="section about" id="about">
-      <h2>О себе</h2>
-      <p>{{ aboutText }}</p>
-    </section>
+      <!-- About Section -->
+      <section class="section about" id="about">
+        <h2>О себе</h2>
+        <p>{{ aboutText }}</p>
+      </section>
 
-    <!-- Projects Section -->
-    <section class="section projects" id="projects">
-      <h2>Проекты</h2>
-      <ul>
-        <li v-for="project in projects" :key="project">
-          <a href="#">{{ project }}</a>
-        </li>
-      </ul>
-    </section>
+      <!-- Projects Section -->
+      <section class="section projects" id="projects">
+        <h2>Проекты</h2>
+        <ul>
+          <li v-for="project in projects" :key="project">
+            <a href="#">{{ project }}</a>
+          </li>
+        </ul>
+      </section>
 
-    <!-- Skills Section -->
-    <section class="section skills" id="skills">
-      <h2>Навыки</h2>
-      <div class="skill-container">
-        <div class="skill-box" v-for="skill in skills" :key="skill.name">
-          <div class="skill-icon">
-            <img :src="skill.icon" :alt="skill.name" />
+      <!-- Skills Section -->
+      <section class="section skills" id="skills">
+        <h2>Навыки</h2>
+        <div class="skill-container">
+          <div class="skill-box" v-for="skill in skills" :key="skill.name">
+            <div class="skill-icon">
+              <img :src="skill.icon" :alt="skill.name" />
+            </div>
+            <h3>{{ skill.name }}</h3>
           </div>
-          <h3>{{ skill.name }}</h3>
         </div>
-      </div>
-    </section>
+        <!-- Cosmic Skills Visualization -->
+        <div class="cosmic-skills">
+          <CircleComponent />
+        </div>
+      </section>
 
-    <!-- Contact Section -->
-    <section class="section contact" id="contact">
-      <h2>Контакты</h2>
-      <ul>
-        <li>Email: {{ email }}</li>
-        <li>Телефон: {{ phone }}</li>
-        <li>
-          Ссылка на GitHub:
-          <a :href="githubLink" target="_blank">{{ githubUsername }}</a>
-        </li>
-      </ul>
-    </section>
+      <!-- Contact Section -->
+      <section class="section contact" id="contact">
+        <h2>Контакты</h2>
+        <ul>
+          <li>Email: {{ email }}</li>
+          <li>Телефон: {{ phone }}</li>
+          <li>
+            Ссылка на GitHub:
+            <a :href="githubLink" target="_blank">{{ githubUsername }}</a>
+          </li>
+        </ul>
+      </section>
+    </div>
   </div>
 </template>
 
 <script>
+  import CircleComponent from './components/MySkills.vue';
+
   export default {
+    components: {
+      CircleComponent
+    },
     data() {
       return {
         name: "Василий",
@@ -94,7 +107,7 @@
 </script>
 
 <style scoped>
-  @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap");
+  @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap");
 
   body {
     font-family: "Poppins", sans-serif;
@@ -102,6 +115,11 @@
     padding: 0;
     background-color: #f4f4f9;
     color: #333;
+  }
+
+  .app-container {
+    position: relative;
+    min-height: 100vh;
   }
 
   @keyframes fadeIn {
@@ -114,14 +132,12 @@
     }
   }
 
-  /* Base Layout */
   .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 20px;
   }
 
-  /* Hero Section */
   .hero {
     text-align: center;
     padding: 60px 0;
@@ -140,7 +156,6 @@
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   }
 
-  /* Navigation */
   .navbar {
     background-color: #333;
     padding: 10px 0;
@@ -174,7 +189,6 @@
         transform: scale(1.05);
       }
 
-  /* Common Section Styles */
   .section {
     margin-top: 40px;
     padding: 30px;
@@ -190,18 +204,15 @@
       font-size: 28px;
     }
 
-    .section p,
-    .section ul {
+    .section p, .section ul {
       font-size: 16px;
       line-height: 1.6;
     }
 
-  /* Projects */
   .projects li {
     margin-bottom: 10px;
   }
 
-  /* Skills */
   .skill-container {
     display: flex;
     justify-content: space-around;
@@ -236,7 +247,15 @@
     color: #333;
   }
 
-  /* Contact */
+  .cosmic-skills {
+    margin-top: 40px;
+    height: 600px; /* Фиксированная высота для космической визуализации */
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+  }
+
   .contact a {
     color: #6a11cb;
     text-decoration: none;
@@ -247,7 +266,6 @@
       color: #2575fc;
     }
 
-  /* Responsive Design */
   @media (max-width: 768px) {
     .navbar ul {
       flex-direction: column;
@@ -260,11 +278,19 @@
     .skill-box {
       width: 45%;
     }
+
+    .cosmic-skills {
+      height: 400px; /* Уменьшаем высоту на меньших экранах */
+    }
   }
 
   @media (max-width: 480px) {
     .skill-box {
       width: 100%;
+    }
+
+    .cosmic-skills {
+      height: 300px; /* Еще меньше для мобильных */
     }
   }
 </style>
