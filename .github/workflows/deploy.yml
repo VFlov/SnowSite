@@ -61,7 +61,7 @@ jobs:
           sshpass -p "$SERVER_PASSWORD" scp -r ./snowsite.client/dist/* $SERVER_USER@$SERVER_IP:/var/www/snowsite/prod/client/
           
           # Копирование ресурсов (assets) для SnowSite
-          sshpass -p "$SERVER_PASSWORD" scp -r ./snowsite.client/assets/* $SERVER_USER@$SERVER_IP:/var/www/snowsite/prod/assets/ || true
+          sshpass -p "$SERVER_PASSWORD" scp -r ./snowsite.client/src/assets/* $SERVER_USER@$SERVER_IP:/var/www/snowsite/prod/assets/ || true
 
           # Копирование бэкенда SnowSite
           sshpass -p "$SERVER_PASSWORD" scp -r ./SnowSite.Server/publish/* $SERVER_USER@$SERVER_IP:/var/www/snowsite/prod/
