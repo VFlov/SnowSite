@@ -24,47 +24,62 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      - name: Install frontend dependencies
+      # SnowSite Frontend
+      - name: Install frontend dependencies (SnowSite)
         working-directory: ./snowsite.client
         run: npm ci && npm install @microsoft/signalr && npm install webrtc-adapter
 
-      - name: Build frontend
+      - name: Build frontend (SnowSite)
         working-directory: ./snowsite.client
         run: npm run build
         env:
           NODE_ENV: production
 
-      - name: Build and publish backend
+      # SnowSite Backend
+      - name: Build and publish backend (SnowSite)
         working-directory: ./SnowSite.Server
         run: dotnet publish -c Release -o ./publish
-        
+
+      # Piranha CMS Backend
       - name: Build and publish backend (Piranha CMS)
-        working-directory: ./PiranhaValheim
+        working-directory: ./PiranhaValheim # Убедитесь, что путь к проекту верный
         run: dotnet publish -c Release -o ./publish
-        
+
       - name: Deploy to production server
         env:
           SERVER_IP: ${{ secrets.SSH_HOST }}
           SERVER_USER: ${{ secrets.SSH_USERNAME }}
           SERVER_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |      
-          sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /var/www/piranha-cms/prod"
-          # Создание директорий
+          # Создание директорий для SnowSite
           sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /var/www/snowsite/prod && mkdir -p /var/www/snowsite/prod/client"
           
-          # Копирование фронтенда
+          # Создание директорий для Piranha CMS
+          sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /var/www/piranha-cms/prod && mkdir -p /var/www/piranha-cms/prod/seed && mkdir -p /var/www/piranha-cms/prod/assets"
+
+          # Копирование фронтенда SnowSite
           sshpass -p "$SERVER_PASSWORD" scp -r ./snowsite.client/dist/* $SERVER_USER@$SERVER_IP:/var/www/snowsite/prod/client/
           
-          # Копирование бэкенда
+          # Копирование бэкенда SnowSite
           sshpass -p "$SERVER_PASSWORD" scp -r ./SnowSite.Server/publish/* $SERVER_USER@$SERVER_IP:/var/www/snowsite/prod/
           
+          # Копирование бэкенда Piranha CMS
           sshpass -p "$SERVER_PASSWORD" scp -r ./PiranhaValheim/publish/* $SERVER_USER@$SERVER_IP:/var/www/piranha-cms/prod/
-          
-          # Перезапуск служб
+
+          # Копирование ресурсов (assets) для Piranha CMS
+          sshpass -p "$SERVER_PASSWORD" scp -r ./PiranhaValheim/assets/* $SERVER_USER@$SERVER_IP:/var/www/piranha-cms/prod/assets/ || true
+
+          # Копирование файлов seed (если они есть)
+          sshpass -p "$SERVER_PASSWORD" scp -r ./PiranhaValheim/seed/* $SERVER_USER@$SERVER_IP:/var/www/piranha-cms/prod/seed/ || true
+
+          # Настройка прав и перезапуск служб
           sshpass -p "$SERVER_PASSWORD" ssh $SERVER_USER@$SERVER_IP << 'EOF'
+            chown -R www-data:www-data /var/www/piranha-cms/prod
+            mkdir -p /var/www/piranha-cms/prod/.dotnet
+            chown www-data:www-data /var/www/piranha-cms/prod/.dotnet
             systemctl stop snowsite.service || true
             systemctl start snowsite.service
             systemctl stop piranha-cms.service || true
             systemctl start piranha-cms.service
-            systemctl restart nginx # Перезапуск Nginx после деплоя
+            systemctl restart nginx
           EOF
