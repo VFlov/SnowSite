@@ -42,7 +42,7 @@ jobs:
 
       # Piranha CMS Backend
       - name: Build and publish backend (Piranha CMS)
-        working-directory: ./PiranhaValheim # Убедитесь, что путь к проекту верный
+        working-directory: ./PiranhaValheim
         run: dotnet publish -c Release -o ./publish
 
       - name: Deploy to production server
@@ -52,28 +52,29 @@ jobs:
           SERVER_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |      
           # Создание директорий для SnowSite
-          sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /var/www/snowsite/prod && mkdir -p /var/www/snowsite/prod/client"
+          sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /var/www/snowsite/prod && mkdir -p /var/www/snowsite/prod/client && mkdir -p /var/www/snowsite/prod/assets"
           
           # Создание директорий для Piranha CMS
-          sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /var/www/piranha-cms/prod && mkdir -p /var/www/piranha-cms/prod/seed && mkdir -p /var/www/piranha-cms/prod/assets"
+          sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /var/www/piranha-cms/prod && mkdir -p /var/www/piranha-cms/prod/seed"
 
           # Копирование фронтенда SnowSite
           sshpass -p "$SERVER_PASSWORD" scp -r ./snowsite.client/dist/* $SERVER_USER@$SERVER_IP:/var/www/snowsite/prod/client/
           
+          # Копирование ресурсов (assets) для SnowSite
+          sshpass -p "$SERVER_PASSWORD" scp -r ./snowsite.client/assets/* $SERVER_USER@$SERVER_IP:/var/www/snowsite/prod/assets/ || true
+
           # Копирование бэкенда SnowSite
           sshpass -p "$SERVER_PASSWORD" scp -r ./SnowSite.Server/publish/* $SERVER_USER@$SERVER_IP:/var/www/snowsite/prod/
           
           # Копирование бэкенда Piranha CMS
           sshpass -p "$SERVER_PASSWORD" scp -r ./PiranhaValheim/publish/* $SERVER_USER@$SERVER_IP:/var/www/piranha-cms/prod/
 
-          # Копирование ресурсов (assets) для Piranha CMS
-          sshpass -p "$SERVER_PASSWORD" scp -r ./PiranhaValheim/assets/* $SERVER_USER@$SERVER_IP:/var/www/piranha-cms/prod/assets/ || true
-
-          # Копирование файлов seed (если они есть)
+          # Копирование файлов seed для Piranha CMS (если есть)
           sshpass -p "$SERVER_PASSWORD" scp -r ./PiranhaValheim/seed/* $SERVER_USER@$SERVER_IP:/var/www/piranha-cms/prod/seed/ || true
 
           # Настройка прав и перезапуск служб
           sshpass -p "$SERVER_PASSWORD" ssh $SERVER_USER@$SERVER_IP << 'EOF'
+            chown -R www-data:www-data /var/www/snowsite/prod
             chown -R www-data:www-data /var/www/piranha-cms/prod
             mkdir -p /var/www/piranha-cms/prod/.dotnet
             chown www-data:www-data /var/www/piranha-cms/prod/.dotnet
